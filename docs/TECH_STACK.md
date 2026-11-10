@@ -47,7 +47,10 @@ Node.js 24 LTS is the recommended deployment runtime. The Docker configuration u
 - server/environment.mjs and server/india.mjs: public environmental adapters.
 - server/sentinelhub.mjs: optional Copernicus OAuth, catalogue and cloud-masked daily statistics.
 - server/prompts.mjs: central evidence-only AI policy and task prompts.
-- data/demo-data.json: active synthetic workspace source.
+- data/demo-data.json: original synthetic report extraction example.
+- data/demo-presentation.json: four-company presentation dataset covering history, usage, claims, reviews and thresholds.
+- server/demo.mjs: transactional, versioned demo population and scoped synthetic membership; bundled originals are checksum checked.
+- src/UsageTrend.tsx: facility/metric-specific monthly charts with units and IST period endings.
 - data/reference-data.json: sourced historical India reference benchmarks, displayed in Settings.
 - server/monitoring.mjs: persisted schedules/cache, facility assessments and in-app notifications.
 - server/governance.mjs: Government Oversight capabilities and public projection.
@@ -57,7 +60,7 @@ Node.js 24 LTS is the recommended deployment runtime. The Docker configuration u
 
 ## Role model
 
-Public users see published summaries and metropolitan context. Company owner/analyst/reviewer roles have distinct scoped permissions. Government authority is separately provisioned and cannot be requested through company registration. Government demo access is limited to one synthetic company. Administrative decisions update CarbonX records only.
+Public users see published summaries and metropolitan context. Company owner/analyst/reviewer roles have distinct scoped permissions. Government authority is separately provisioned and cannot be requested through company registration. Government demo access is limited to its own four fictional companies; other sandboxes and real company records remain inaccessible. Administrative decisions update CarbonX records only.
 
 ## What runs without ChatGPT
 

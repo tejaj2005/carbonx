@@ -121,8 +121,8 @@ export function HomePortals() {
       </article>
       {demo && (
         <p className="home-demo-note">
-          Demo logins open an isolated synthetic company workspace. Environmental feeds retain their
-          real provider readings and timestamps.
+          Demo logins open a populated sandbox of four fictional companies. Environmental feeds
+          retain their real provider readings and timestamps.
         </p>
       )}
     </section>

@@ -49,7 +49,12 @@ export function Dashboard() {
       Sprout,
       'Mappings suggested from claims',
     ],
-    ['Reviewed by people', s.reviewed || 0, ShieldCheck, 'Decisions with recorded rationale'],
+    [
+      user?.isExample ? 'Example reviews' : 'Reviewed by people',
+      s.reviewed || 0,
+      ShieldCheck,
+      'Decisions with recorded rationale',
+    ],
   ] as const;
   const covered = d.coverage.filter((g: Item) => g.count > 0);
   return (
@@ -158,7 +163,7 @@ export function Dashboard() {
                 {s.claims ? Math.round((s.reviewed / s.claims) * 100) : 0}
                 <small>%</small>
               </strong>
-              <span>human reviewed</span>
+              <span>{user?.isExample ? 'example reviews' : 'human reviewed'}</span>
             </div>
           </div>
           <div className="status-summary">

@@ -1,3 +1,4 @@
+import { demoTools } from './demo.mjs';
 import { publicSatelliteRoutes } from './public-satellite.mjs';
 import { cloudServices } from './cloud-services.mjs';
 import { orbitTools } from './orbit.mjs';
@@ -84,6 +85,7 @@ export async function createApp(config) {
     orbit = orbitTools();
   const governance = await governanceTools(store, config, auth, cloud, environmentJob);
   const monitoring = await monitoringTools(store, config, ai);
+  const demos = demoTools(store, config, work);
   for (const c of await store.q('SELECT DISTINCT company_id FROM claims'))
     await work.refresh(c.company_id);
   app.disable('x-powered-by');
@@ -172,6 +174,21 @@ export async function createApp(config) {
     );
     return { ...account, confirmationRequired: Boolean(identity?.confirmationRequired) };
   }
+  if (config.allowDemo && !config.testing) {
+    const existing = await store.get(
+      'SELECT c.id FROM companies c JOIN company_registry r ON r.company_id=c.id LEFT JOIN demo_members m ON m.company_id=c.id WHERE c.is_example=1 AND r.public_visible=1 AND (m.root_company_id IS NULL OR m.root_company_id=c.id) ORDER BY c.created_at LIMIT 1',
+    );
+    const bootstrap =
+      existing ||
+      (await createAccount(
+        demoData.company,
+        'Presentation Owner',
+        'demo-' + uuid() + '@carbonx.invalid',
+        crypto.randomBytes(32).toString('hex'),
+        true,
+      ));
+    await demos.seed(bootstrap.company_id || bootstrap.id);
+  }
   app.post('/api/auth/register', async (req, res) => {
     if (!config.allowRegistration) throw error('Registration is disabled.', 403);
     const b = z
@@ -258,7 +275,7 @@ export async function createApp(config) {
     }
     const text = demoData.report.text;
     const bytes = Buffer.from(text),
-      stored = uuid() + '.txt';
+      stored = 'demo_' + crypto.randomBytes(14).toString('hex') + '.txt';
     fs.writeFileSync(path.join(config.dataDir, 'uploads', stored), bytes);
     const report = {
       id: uuid('rpt_'),
@@ -280,10 +297,7 @@ export async function createApp(config) {
       archived: 0,
       created_at: now(),
     };
-    await cloud.saveOriginal(
-      report,
-      fs.readFileSync(path.join(config.dataDir, 'uploads', report.stored_name)),
-    );
+    // Bundled synthetic originals stay local so demo entry never depends on cloud availability.
     await store.insert('reports', report);
     const job = await work.enqueue(report);
     await store.audit(user.company_id, user.id, 'example.created', 'company', user.company_id);
@@ -314,6 +328,7 @@ export async function createApp(config) {
         authority: 'Government Oversight',
         demo_company_id: user.company_id,
       });
+    await demos.seed(user.company_id);
     res.status(201).json({ user: await auth.publicUser(user), csrf, jobId: job.id });
   });
   app.use('/api', auth.requireAuth, auth.csrfCheck);
@@ -397,9 +412,16 @@ export async function createApp(config) {
   }
   const analysts = auth.roles('owner', 'analyst'),
     reviewers = auth.roles('owner', 'reviewer');
-  app.get('/api/auth/me', async (req, res) =>
-    res.json({ user: await auth.publicUser(req.user), csrf: req.user.csrf }),
-  );
+  app.get('/api/auth/me', async (req, res) => {
+    if (req.user.is_example && config.allowDemo) {
+      const member = await store.get(
+        'SELECT root_company_id FROM demo_members WHERE company_id=?',
+        req.user.company_id,
+      );
+      await demos.seed(member?.root_company_id || req.user.company_id);
+    }
+    res.json({ user: await auth.publicUser(req.user), csrf: req.user.csrf });
+  });
   app.post('/api/auth/logout', async (req, res) => {
     await auth.logout(req, res);
     res.json({ ok: true });

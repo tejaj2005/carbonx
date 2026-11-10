@@ -155,7 +155,11 @@ export function Evaluation() {
       <Heading
         eyebrow="MEASURED EVALUATION"
         title="Measure the pipeline you actually ran."
-        description="Compare keyword mapping with the stored pipeline output against independently reviewed labels."
+        description={
+          user?.isExample
+            ? 'Inspect a consistency check against preconfigured synthetic labels. These scores do not measure independent AI accuracy.'
+            : 'Compare keyword mapping with the stored pipeline output against independently reviewed labels.'
+        }
         action={
           <button
             className="button primary"
@@ -172,14 +176,18 @@ export function Evaluation() {
             onClick={() => void run()}
           >
             <FlaskConical size={16} />
-            {busy ? 'Evaluating…' : 'Run held-out evaluation'}
+            {busy
+              ? 'Evaluating…'
+              : user?.isExample
+                ? 'Run fixture check'
+                : 'Run held-out evaluation'}
           </button>
         }
       />
       <div className="metric-grid three">
         <article className="metric-card">
           <div>
-            <span>Human labels</span>
+            <span>{user?.isExample ? 'Synthetic labels' : 'Human labels'}</span>
             <FlaskConical size={18} />
           </div>
           <strong>{e.cases.length}</strong>

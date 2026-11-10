@@ -1,3 +1,4 @@
+import { UsageTrend } from './UsageTrend';
 import { HomePortals } from './HomePortals';
 import { takeDestination } from './role-routing';
 import { SatelliteVerification } from './SatelliteView';
@@ -67,8 +68,9 @@ function PublicCompany({ company, onClose }: { company: Item; onClose: () => voi
           ))}
         </div>
         <p className="fine-print">
-          These are recorded review statuses. Source documents and private reviewer notes remain
-          protected.
+          {company.isExample
+            ? 'Preconfigured fictional review decisions for presentation; no real government approval.'
+            : 'These are recorded review statuses. Source documents and private reviewer notes remain protected.'}
         </p>
       </Panel>
       <h3>Latest reported usage</h3>
@@ -95,32 +97,42 @@ function PublicCompany({ company, onClose }: { company: Item; onClose: () => voi
           This company has not yet supplied historical observations.
         </Empty>
       )}
-      <Panel title="Recent company-submitted readings" kicker="PUBLISHED RECORDS">
+      <Panel
+        title={
+          company.isExample
+            ? 'Synthetic monthly usage examples'
+            : 'Recent company-submitted readings'
+        }
+        kicker="PUBLISHED RECORDS"
+      >
         {readings.length ? (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>MEASUREMENT</th>
-                  <th>VALUE</th>
-                  <th>SCOPE</th>
-                  <th>OBSERVED</th>
-                </tr>
-              </thead>
-              <tbody>
-                {readings.slice(0, 15).map((r: Item, i: number) => (
-                  <tr key={i}>
-                    <td>{metricNames[r.metric] || label(r.metric)}</td>
-                    <td>
-                      {number(r.value, 2)} {r.unit}
-                    </td>
-                    <td>{r.scope}</td>
-                    <td>{date(r.recordedAt)}</td>
+          <>
+            <UsageTrend readings={readings} synthetic={company.isExample} />
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>MEASUREMENT</th>
+                    <th>VALUE</th>
+                    <th>SCOPE</th>
+                    <th>OBSERVED</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {readings.slice(0, 15).map((r: Item, i: number) => (
+                    <tr key={i}>
+                      <td>{metricNames[r.metric] || label(r.metric)}</td>
+                      <td>
+                        {number(r.value, 2)} {r.unit}
+                      </td>
+                      <td>{r.scope}</td>
+                      <td>{date(r.recordedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <p className="muted">
             No recent readings have been submitted. Continuous meter telemetry is not connected.
@@ -215,8 +227,7 @@ export function PublicPortal() {
         exampleNames.add(key);
         return true;
       }),
-    current = data?.companies.find((c: Item) => c.id === selected),
-    hasEnvironment = companies.some((c: Item) => c.environmental.length);
+    current = data?.companies.find((c: Item) => c.id === selected);
   return (
     <div className="public-site">
       <header className="public-nav">
@@ -292,8 +303,12 @@ export function PublicPortal() {
           </div>
           <div>
             <Satellite size={19} />
-            <strong>{hasEnvironment ? 'Available' : 'Awaiting publication'}</strong>
-            <span>Environmental observations</span>
+            <strong>
+              {data
+                ? companies.reduce((count: number, c: Item) => count + c.metrics.length, 0)
+                : '—'}
+            </strong>
+            <span>Published usage values</span>
           </div>
           <div className="public-refresh">
             <span className={'status-dot ' + (error ? 'offline' : '')} />
@@ -352,7 +367,8 @@ export function PublicPortal() {
           <div className="public-company-grid">
             {companies.map((c: Item) => {
               const water = c.metrics.find((m: Item) => m.metric === 'water_consumption'),
-                energy = c.metrics.find((m: Item) => m.metric === 'energy_consumption');
+                energy = c.metrics.find((m: Item) => m.metric === 'energy_consumption'),
+                emissions = c.metrics.find((m: Item) => m.metric === 'emissions');
               return (
                 <button
                   className="public-company-card"
@@ -387,6 +403,18 @@ export function PublicPortal() {
                       </span>
                       {energy && <b>FY{energy.year}</b>}
                     </div>
+                    {emissions && (
+                      <div>
+                        <Leaf size={17} />
+                        <span>
+                          Emissions
+                          <small>
+                            {number(emissions.value)} {emissions.unit}
+                          </small>
+                        </span>
+                        <b>FY{emissions.year}</b>
+                      </div>
+                    )}
                   </div>
                   <div className="public-card-footer">
                     <span>View published evidence</span>

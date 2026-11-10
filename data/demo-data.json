@@ -66,5 +66,6 @@
       "reason": "No comparable synthetic emissions baseline."
     }
   ],
-  "approvalPolicy": "No approval is pre-assigned to real data. An authenticated government reviewer may accept the synthetic submission during a demo."
+  "approvalPolicy": "This base extraction fixture starts submitted. The extended presentation bundle also includes clearly labelled simulated accepted/rejected review scenarios. These never represent real government approval.",
+  "presentationExtension": "data/demo-presentation.json"
 }

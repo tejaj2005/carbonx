@@ -39,7 +39,7 @@ The default page is the anonymous public transparency register. Separate sign-in
 
 Company owners control publication of reported usage and optional stored environmental summaries. Private reports, account details, internal review notes and exact site coordinates stay outside the public projection. Government administrators review submissions, manage licence records and cases, create company users and disable/restore access. Suspended or revoked CarbonX licences pause company changes while preserving read access.
 
-For a project review, use the labelled demo buttons. The banner can switch between government and company perspectives within the same synthetic company, preserving its submissions and decisions. Real accounts cannot use demo role switching. The walkthrough includes floating evidence cards, a controllable satellite illustration and an air-quality simulation. Simulated values do not become stored observations.
+For a project review, use the labelled demo buttons. The banner can switch between government and company perspectives within the same isolated four-company synthetic sandbox, preserving submissions and decisions. Real accounts cannot use demo role switching. The walkthrough includes floating evidence cards, a controllable satellite illustration and an air-quality simulation. Simulated values do not become stored observations.
 
 Create a real government administrator from the project terminal with npm.cmd run admin:create. The interactive password prompt is hidden. Government privilege cannot be requested through company registration. Disable demos with ALLOW_DEMO=false for normal deployment.
 
@@ -49,7 +49,7 @@ See [the project-review walkthrough](docs/project-review.md) for the presentatio
 
 - Open the public page, then select Company portal or Government login for protected work.
 - Create a company workspace with your own email and a password of at least 12 characters. Each company starts empty.
-- Alternatively select **Open an example workspace** for a synthetic, isolated presentation workspace. This creates stored sample reports and observations and runs the actual processing pipeline. The example banner stays visible.
+- Alternatively select **Open an example workspace** for a synthetic, isolated presentation workspace. This creates three reports per company, multi-year history, monthly usage graphs, sample emissions thresholds, review scenarios, cases and notifications. Bundled synthetic sources are prepared immediately; the original extraction example also runs the normal processing pipeline. The example banner stays visible.
 - Upload a PDF or UTF-8 text report. Record its year, facility scope and reporting boundary.
 - Inspect extracted claims and their source passages. Add historical observations or preview and confirm a CSV import.
 - Open a claim to inspect units, baseline and current year, comparison reasoning and source citations. Correct extraction fields when necessary and record a reviewer decision.
@@ -81,7 +81,7 @@ The default AI provider is Groq. The ignored .env file is prepared: add a rotate
 
 Groq supports structured report extraction, cited evidence answers, action plans and alert explanations. It uses your Groq account limits/billing and sends selected report evidence to Groq when requested. Evidence retrieval remains lexical; no Groq embedding service is assumed. Missing credentials keep the labelled baseline active.
 
-Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. No live Groq inference has been verified while the key is blank.
+Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. See docs/BACKEND_STATUS.md for the latest verified runtime status; a configured key alone does not establish live inference.
 
 See [simple environment setup](docs/ENV_SETUP.md). Auth and private Storage are active; record migration awaits database connectivity, and email is skipped. Optional legacy providers are not selected by the default configuration.
 

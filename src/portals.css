@@ -2351,3 +2351,27 @@
 .sidebar > * {
   flex-shrink: 0;
 }
+
+.usage-trend {
+  margin: 12px 0 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #e3eae4);
+}
+.usage-trend select {
+  max-width: min(440px, 100%);
+  min-width: 0;
+  font-size: 12px;
+}
+.usage-trend h3 {
+  margin: 0;
+}
+@media (max-width: 650px) {
+  .usage-trend .row-between {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .usage-trend select {
+    width: 100%;
+  }
+}

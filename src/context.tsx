@@ -48,6 +48,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [message, setMessage] = useState(''),
     [claimId, setClaimId] = useState<string | null>(null);
   const generation = useRef(0);
+  const refreshing = useRef<number | null>(null);
   useEffect(() => {
     api('/auth/me')
       .then((x) => {
@@ -64,9 +65,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(t);
   }, [message]);
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!user || refreshing.current === generation.current) return;
     setLoading(true);
     const requestGeneration = generation.current;
+    refreshing.current = requestGeneration;
     try {
       if (user.portal === 'government') {
         const [government, monitoring] = await Promise.all([
@@ -93,19 +95,30 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       ];
       if (user.role !== 'analyst') keys.push('audit');
       if (user.role === 'owner') keys.push('team');
-      const values = await Promise.all(keys.map((k) => api('/' + k)));
+      const results = await Promise.allSettled(keys.map((k) => api('/' + k)));
+      const succeeded = keys.flatMap((key, i) =>
+        results[i].status === 'fulfilled'
+          ? [
+              [
+                key === 'company/overview' ? 'company' : key,
+                (results[i] as PromiseFulfilledResult<any>).value,
+              ],
+            ]
+          : [],
+      );
+      if (results.some((r) => r.status === 'rejected'))
+        toast('Some records could not refresh. Previously loaded values are retained.');
       if (requestGeneration === generation.current)
-        setData({
-          ...blank,
+        setData((previous) => ({
+          ...previous,
           refreshedAt: new Date().toISOString(),
-          ...Object.fromEntries(
-            keys.map((k, i) => [k === 'company/overview' ? 'company' : k, values[i]]),
-          ),
-        });
+          ...Object.fromEntries(succeeded),
+        }));
     } catch (e) {
       toast((e as Error).message);
     } finally {
       if (requestGeneration === generation.current) setLoading(false);
+      if (refreshing.current === requestGeneration) refreshing.current = null;
     }
   }, [user, toast]);
   useEffect(() => {

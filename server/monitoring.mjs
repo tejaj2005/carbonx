@@ -1,3 +1,4 @@
+import { demoCompanyIds } from './demo.mjs';
 const asyncFilter = async (rows, predicate) => {
   const mask = await Promise.all(rows.map(predicate));
   return rows.filter((_, i) => mask[i]);
@@ -54,6 +55,16 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
     const users = (await store.q('SELECT id FROM users WHERE company_id=? AND disabled=0', id)).map(
       (u) => u.id,
     );
+    if (company.is_example) {
+      users.push(
+        ...(
+          await store.q(
+            'SELECT u.id FROM users u JOIN government_admins g ON g.user_id=u.id JOIN demo_members m ON m.root_company_id=g.demo_company_id WHERE m.company_id=? AND u.disabled=0',
+            id,
+          )
+        ).map((u) => u.id),
+      );
+    }
     if (!company.is_example)
       users.push(
         ...(
@@ -190,8 +201,12 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
     const rules = await store.q(
       'SELECT * FROM emission_rules WHERE 1=1' +
         (includeInactive ? '' : ' AND active=1') +
-        (companyId ? ' AND company_id=?' : ''),
-      ...(companyId ? [companyId] : []),
+        (companyId
+          ? ' AND company_id IN (' +
+            (Array.isArray(companyId) ? companyId : [companyId]).map(() => '?').join(',') +
+            ')'
+          : ''),
+      ...(companyId ? (Array.isArray(companyId) ? companyId : [companyId]) : []),
     );
     return await Promise.all(
       rules.map(async (rule) => {
@@ -217,7 +232,9 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
             kind: 'reported_emissions_threshold',
             title: 'Reported emissions above a configured threshold',
             message:
-              'A company-submitted ' +
+              (sample?.source_kind === 'synthetic_example'
+                ? 'A synthetic presentation '
+                : 'A company-submitted ') +
               rule.metric +
               ' observation of ' +
               sample?.value +
@@ -405,7 +422,7 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
   async function allowedCompany(req, id) {
     const a = await authority(req.user);
     if (!a) throw error('Government administrator access is required.', 403);
-    if (a.demo_company_id && a.demo_company_id !== id)
+    if (a.demo_company_id && !(await demoCompanyIds(store, a.demo_company_id)).includes(id))
       throw error('Company not found in this authority workspace.', 404);
     const c = await store.get('SELECT * FROM companies WHERE id=?', id);
     if (!c) throw error('Company not found.', 404);
@@ -415,7 +432,8 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
     if (alert.city_id) return true;
     const a = await authority(req.user);
     return a
-      ? !a.demo_company_id || a.demo_company_id === alert.company_id
+      ? !a.demo_company_id ||
+          (await demoCompanyIds(store, a.demo_company_id)).includes(alert.company_id)
       : alert.company_id === req.user.company_id;
   }
   function publicRoutes(app) {
@@ -425,8 +443,12 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
     app.get('/api/monitoring', async (req, res) => {
       await collectAuditNotifications();
       const a = await authority(req.user),
-        ids = a?.demo_company_id ? [a.demo_company_id] : a ? null : [req.user.company_id];
-      const rules = (await evaluateRules(ids?.[0], true)).filter(
+        ids = a?.demo_company_id
+          ? await demoCompanyIds(store, a.demo_company_id)
+          : a
+            ? null
+            : [req.user.company_id];
+      const rules = (await evaluateRules(ids, true)).filter(
         (r) => !ids || ids.includes(r.company_id),
       );
       const alerts = (
@@ -439,6 +461,9 @@ export async function monitoringTools(store, config, ai, adapters = {}) {
         payload: JSON.parse(a.payload_json),
         ai: a.ai_json ? JSON.parse(a.ai_json) : null,
       }));
+      if (a)
+        for (const alert of alerts.filter((alert) => alert.company_id && alert.status === 'open'))
+          await notify(alert, [req.user.id]);
       res.json({
         ...(await overview()),
         rules,

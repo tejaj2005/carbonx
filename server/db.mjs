@@ -15,6 +15,12 @@ export async function openDatabase(
       'utf8',
     );
     const store = await openPostgres(process.env, migration, { schema });
+    await store.db.exec(
+      'CREATE TABLE IF NOT EXISTS demo_members(company_id TEXT PRIMARY KEY REFERENCES companies(id),root_company_id TEXT NOT NULL REFERENCES companies(id)); CREATE INDEX IF NOT EXISTS demo_root ON demo_members(root_company_id); CREATE TABLE IF NOT EXISTS demo_seeds(root_company_id TEXT PRIMARY KEY REFERENCES companies(id),version INTEGER NOT NULL,created_at TEXT NOT NULL);',
+    );
+    await store.db.exec(
+      'ALTER TABLE demo_members ENABLE ROW LEVEL SECURITY; ALTER TABLE demo_seeds ENABLE ROW LEVEL SECURITY; REVOKE ALL ON demo_members,demo_seeds FROM PUBLIC,anon,authenticated;',
+    );
     if (recoverJobs) {
       await store.run(
         "UPDATE jobs SET status='interrupted',stage='Restart required',error='Reprocess this report.' WHERE status IN ('running','queued')",
@@ -29,6 +35,9 @@ export async function openDatabase(
   const raw = openSqlite(dataDir, { recoverJobs });
   if (!raw.q('PRAGMA table_info(users)').some((c) => c.name === 'auth_user_id'))
     raw.db.exec('ALTER TABLE users ADD COLUMN auth_user_id TEXT');
+  raw.db.exec(
+    'CREATE TABLE IF NOT EXISTS demo_members(company_id TEXT PRIMARY KEY REFERENCES companies(id),root_company_id TEXT NOT NULL REFERENCES companies(id)); CREATE INDEX IF NOT EXISTS demo_root ON demo_members(root_company_id); CREATE TABLE IF NOT EXISTS demo_seeds(root_company_id TEXT PRIMARY KEY REFERENCES companies(id),version INTEGER NOT NULL,created_at TEXT NOT NULL);',
+  );
   const context = new AsyncLocalStorage();
   let tail = Promise.resolve();
   const lock = async (fn) => {

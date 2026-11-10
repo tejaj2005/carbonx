@@ -588,11 +588,11 @@ export function GovernmentPortal({ view }: { view: string }) {
             <div className="example-banner">
               <Eye size={16} />
               <span>
-                <b>Government presentation sandbox</b> · Actions affect only this synthetic company.
-                No external licences are changed.
+                <b>Government presentation sandbox</b> · Actions affect only this workspace’s four
+                synthetic companies. No external licences are changed.
               </span>
               <button className="demo-role-switch" onClick={() => void switchDemo()}>
-                View this company as company
+                Open company demo
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -720,8 +720,8 @@ export function GovernmentPortal({ view }: { view: string }) {
               />
               {g.demo && (
                 <p className="fine-print">
-                  The sandbox is restricted to its existing synthetic company. A provisioned
-                  administrator can add real company records.
+                  The sandbox contains four fictional companies with different review and licence
+                  scenarios. A provisioned administrator can add real company records.
                 </p>
               )}
               <Panel

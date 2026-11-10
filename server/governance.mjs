@@ -1,3 +1,4 @@
+import { demoCompanyIds } from './demo.mjs';
 import { atmosphericContext } from './environment.mjs';
 import { sendOfficeReport } from './office-exports.mjs';
 import {
@@ -53,7 +54,7 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
   }
   async function scoped(req, id) {
     const a = req.authority || (await authority(req.user));
-    if (!a || (a.demo_company_id && a.demo_company_id !== id))
+    if (!a || (a.demo_company_id && !(await demoCompanyIds(store, a.demo_company_id)).includes(id)))
       throw fail('Company not found in this authority workspace.', 404);
     const c = await store.get(
       'SELECT * FROM companies WHERE id=? AND id NOT IN (SELECT company_id FROM users WHERE id IN (SELECT user_id FROM government_admins WHERE demo_company_id IS NULL))',
@@ -83,27 +84,32 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
   }
   async function listCompanies(req) {
     const a = req.authority,
-      params = a.demo_company_id ? [a.demo_company_id] : [];
+      params = a.demo_company_id ? await demoCompanyIds(store, a.demo_company_id) : [];
     const companies = await store.q(
       'SELECT c.* FROM companies c WHERE c.id NOT IN (SELECT company_id FROM users WHERE id IN (SELECT user_id FROM government_admins WHERE demo_company_id IS NULL))' +
-        (a.demo_company_id ? ' AND c.id=?' : '') +
+        (a.demo_company_id ? ' AND c.id IN (' + params.map(() => '?').join(',') + ')' : '') +
         ' ORDER BY c.created_at DESC',
       ...params,
     );
     return await Promise.all(
-      companies.map(async (c) => ({
-        ...c,
-        ...(await registry(c.id)),
-        report_count: (
-          await store.get('SELECT COUNT(*) n FROM reports WHERE company_id=? AND archived=0', c.id)
-        ).n,
-        submission_count: (
-          await store.get(
-            "SELECT COUNT(*) n FROM submissions WHERE company_id=? AND status IN ('submitted','under_review','follow_up')",
-            c.id,
-          )
-        ).n,
-      })),
+      companies
+        .sort((x, y) => Number(y.id === a.demo_company_id) - Number(x.id === a.demo_company_id))
+        .map(async (c) => ({
+          ...c,
+          ...(await registry(c.id)),
+          report_count: (
+            await store.get(
+              'SELECT COUNT(*) n FROM reports WHERE company_id=? AND archived=0',
+              c.id,
+            )
+          ).n,
+          submission_count: (
+            await store.get(
+              "SELECT COUNT(*) n FROM submissions WHERE company_id=? AND status IN ('submitted','under_review','follow_up')",
+              c.id,
+            )
+          ).n,
+        })),
     );
   }
   async function publicCompany(c) {
@@ -131,7 +137,9 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
         scope: o.facility_name || 'Company-wide',
         boundary: o.boundary,
         recordedAt: o.created_at,
-        origin: 'Company-reported historical record',
+        origin: c.is_example
+          ? 'Synthetic presentation history'
+          : 'Company-reported historical record',
       });
     }
     const readings = (
@@ -145,7 +153,7 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
       unit: m.unit,
       recordedAt: m.recorded_at,
       scope: m.facility || 'Company-wide',
-      origin: 'Company-submitted reading',
+      origin: c.is_example ? 'Synthetic monthly period total' : 'Company-submitted reading',
     }));
     let environmental = [];
     if (r.publish_environment) {
@@ -222,13 +230,20 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
       }),
     );
     app.get('/api/public/overview', async (_req, res) => {
-      const companies = await Promise.all(
-        (
-          await store.q(
-            'SELECT c.* FROM companies c JOIN company_registry r ON r.company_id=c.id WHERE r.public_visible=1 ORDER BY c.name',
-          )
-        ).map(publicCompany),
+      const published = await store.q(
+        'SELECT c.* FROM companies c JOIN company_registry r ON r.company_id=c.id WHERE r.public_visible=1 ORDER BY CASE WHEN EXISTS(SELECT 1 FROM demo_members m JOIN demo_seeds s ON s.root_company_id=m.root_company_id WHERE m.company_id=c.id AND s.version=2) THEN 0 ELSE 1 END,c.created_at DESC,c.id',
       );
+      const names = new Set();
+      const visible = published
+        .filter((c) => {
+          if (!c.is_example) return true;
+          const key = c.name.trim().toLowerCase();
+          if (names.has(key)) return false;
+          names.add(key);
+          return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const companies = await Promise.all(visible.map(publicCompany));
       res.json({
         companies,
         refreshedAt: now(),
@@ -264,14 +279,21 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
     app.get('/api/government/overview', async (req, res) => {
       const companies = await listCompanies(req),
         ids = companies.map((c) => c.id);
+      const placeholders = ids.length ? ids.map(() => '?').join(',') : "''";
       const actions = (
         await store.q(
-          'SELECT a.*,c.name company_name,u.name actor FROM oversight_actions a JOIN companies c ON c.id=a.company_id LEFT JOIN users u ON u.id=a.created_by ORDER BY a.created_at DESC',
+          'SELECT a.*,c.name company_name,u.name actor FROM oversight_actions a JOIN companies c ON c.id=a.company_id LEFT JOIN users u ON u.id=a.created_by WHERE a.company_id IN (' +
+            placeholders +
+            ') ORDER BY a.created_at DESC',
+          ...ids,
         )
       ).filter((a) => ids.includes(a.company_id));
       const submissions = (
         await store.q(
-          'SELECT s.*,c.name company_name FROM submissions s JOIN companies c ON c.id=s.company_id ORDER BY s.created_at DESC',
+          'SELECT s.*,c.name company_name FROM submissions s JOIN companies c ON c.id=s.company_id WHERE s.company_id IN (' +
+            placeholders +
+            ') ORDER BY s.created_at DESC',
+          ...ids,
         )
       ).filter((s) => ids.includes(s.company_id));
       const users = (
@@ -283,7 +305,11 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
       );
       const audit = (
         await store.q(
-          'SELECT a.*,c.name company_name,u.name actor FROM audit a JOIN companies c ON c.id=a.company_id LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 1000',
+          'SELECT a.*,c.name company_name,u.name actor FROM audit a JOIN companies c ON c.id=a.company_id LEFT JOIN users u ON u.id=a.user_id WHERE a.company_id IN (' +
+            placeholders +
+            ') OR a.user_id=? ORDER BY a.created_at DESC LIMIT 100',
+          ...ids,
+          req.user.id,
         )
       )
         .filter((a) => ids.includes(a.company_id) || a.user_id === req.user.id)
@@ -344,10 +370,7 @@ export async function governanceTools(store, config, auth, cloud, environmentJob
     });
     app.post('/api/government/companies', async (req, res) => {
       if (req.authority.demo_company_id)
-        throw fail(
-          'The government demonstration is limited to its existing synthetic company.',
-          403,
-        );
+        throw fail('The government demonstration is limited to its four synthetic companies.', 403);
       const b = z.object({ name: z.string().trim().min(2).max(120) }).parse(req.body),
         id = uuid('org_');
       await store.insert('companies', { id, name: b.name, is_example: 0, created_at: now() });

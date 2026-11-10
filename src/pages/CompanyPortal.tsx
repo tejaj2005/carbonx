@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { mutate, label, date, number, type Item } from '../api';
 import { useWorkspace } from '../context';
+import { UsageTrend } from '../UsageTrend';
 import { Heading, Panel, Empty, Badge, Field, Modal } from '../components';
 const metrics = [
   'water_consumption',
@@ -387,32 +388,35 @@ export function CompanyPortal() {
         }
       >
         {c.readings.length ? (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>MEASUREMENT</th>
-                  <th>OBSERVED VALUE</th>
-                  <th>TIME</th>
-                  <th>SOURCE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c.readings.slice(0, 10).map((m: Item) => (
-                  <tr key={m.id}>
-                    <td>{label(m.metric)}</td>
-                    <td>
-                      <b>
-                        {number(m.value, 2)} {m.unit}
-                      </b>
-                    </td>
-                    <td>{date(m.recorded_at)}</td>
-                    <td>{m.source}</td>
+          <>
+            <UsageTrend readings={c.readings} synthetic={user?.isExample} />
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>MEASUREMENT</th>
+                    <th>OBSERVED VALUE</th>
+                    <th>TIME</th>
+                    <th>SOURCE</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {c.readings.slice(0, 10).map((m: Item) => (
+                    <tr key={m.id}>
+                      <td>{label(m.metric)}</td>
+                      <td>
+                        <b>
+                          {number(m.value, 2)} {m.unit}
+                        </b>
+                      </td>
+                      <td>{date(m.recorded_at)}</td>
+                      <td>{m.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <Empty title="Keep recent usage visible">
             Record actual meter or reporting-system observations. Published readings appear on the
@@ -420,8 +424,9 @@ export function CompanyPortal() {
           </Empty>
         )}
         <p className="chart-note">
-          Continuous meter telemetry is not connected. Every value here is a company-submitted
-          observation.
+          {user?.isExample
+            ? 'Synthetic monthly totals are included for presentation. Dates show period endings; these are not live sensor readings.'
+            : 'Continuous meter telemetry is not connected. Every value here is a company-submitted observation.'}
         </p>
       </Panel>
       <Publication key={r.updated_at} />

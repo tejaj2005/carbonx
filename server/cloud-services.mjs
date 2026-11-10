@@ -199,8 +199,12 @@ export function cloudServices(config, { fetcher = fetch, env = process.env } = {
     });
   }
   async function download(report) {
-    if (!storageEnabled)
-      return fs.readFileSync(path.join(config.dataDir, 'uploads', report.stored_name));
+    if (!storageEnabled || /^demo_[a-f0-9]{28}\.txt$/.test(report.stored_name)) {
+      const bytes = fs.readFileSync(path.join(config.dataDir, 'uploads', report.stored_name));
+      if (crypto.createHash('sha256').update(bytes).digest('hex') !== report.sha256)
+        throw failure('Evidence checksum verification failed.');
+      return bytes;
+    }
     const response = await request('/storage/v1/object/' + objectPath(report));
     const bytes = Buffer.from(await response.arrayBuffer());
     if (crypto.createHash('sha256').update(bytes).digest('hex') !== report.sha256)
@@ -208,7 +212,8 @@ export function cloudServices(config, { fetcher = fetch, env = process.env } = {
     return bytes;
   }
   async function originalPath(report) {
-    if (!storageEnabled) return path.join(config.dataDir, 'uploads', report.stored_name);
+    if (!storageEnabled || /^demo_[a-f0-9]{28}\.txt$/.test(report.stored_name))
+      return path.join(config.dataDir, 'uploads', report.stored_name);
     const filename = path.join(config.dataDir, 'cache', report.company_id, report.stored_name);
     if (
       fs.existsSync(filename) &&

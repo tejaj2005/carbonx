@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 2,
+  "kind": "synthetic",
+  "notice": "Fictional presentation examples only. Companies, permits, decisions and facility measurements are invented. City coordinates are representative city centres, not verified factory sites. Live provider feeds are fetched separately.",
+  "companies": [
+    {
+      "key": "riverbend",
+      "name": "Riverbend Example Company",
+      "city": "Hyderabad",
+      "cityId": "hyderabad",
+      "industry": "Manufacturing",
+      "latitude": 17.385,
+      "longitude": 78.4867,
+      "licence": "active",
+      "scale": 1
+    },
+    {
+      "key": "harbour",
+      "name": "Harbour Looms · Example",
+      "city": "Mumbai",
+      "cityId": "mumbai",
+      "industry": "Textiles",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "licence": "active",
+      "scale": 1.6
+    },
+    {
+      "key": "deccan",
+      "name": "Deccan Components · Example",
+      "city": "Bengaluru",
+      "cityId": "bengaluru",
+      "industry": "Electronics",
+      "latitude": 12.9716,
+      "longitude": 77.5946,
+      "licence": "pending",
+      "scale": 0.75
+    },
+    {
+      "key": "capital",
+      "name": "Capital Materials · Example",
+      "city": "Delhi",
+      "cityId": "delhi",
+      "industry": "Building materials",
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "licence": "suspended",
+      "scale": 2.2
+    }
+  ],
+  "history": [
+    {
+      "metric": "water_consumption",
+      "unit": "kL",
+      "values": [
+        [2022, 1200],
+        [2023, 1000],
+        [2024, 800],
+        [2025, 720]
+      ]
+    },
+    {
+      "metric": "energy_consumption",
+      "unit": "MWh",
+      "values": [
+        [2022, 11000],
+        [2023, 10000],
+        [2024, 9000],
+        [2025, 8100]
+      ]
+    },
+    {
+      "metric": "emissions",
+      "unit": "tCO2e",
+      "values": [
+        [2024, 4200],
+        [2025, 3780]
+      ]
+    },
+    {
+      "metric": "waste_recycled",
+      "unit": "tonnes",
+      "values": [
+        [2022, 90],
+        [2023, 100],
+        [2024, 125],
+        [2025, 150]
+      ]
+    },
+    {
+      "metric": "renewable_share",
+      "unit": "%",
+      "values": [
+        [2022, 25],
+        [2023, 35],
+        [2024, 45],
+        [2025, 52]
+      ]
+    },
+    {
+      "metric": "water_recycled",
+      "unit": "kL",
+      "values": [
+        [2022, 110],
+        [2023, 140],
+        [2024, 180],
+        [2025, 230]
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "key": "performance",
+      "name": "FY2025 resource performance · synthetic",
+      "year": 2025,
+      "claims": [
+        "In FY2025, water consumption decreased by 10% compared with FY2024 at {boundary}, reaching {water} kL.",
+        "In FY2025, energy consumption decreased by 30% compared with FY2024 at {boundary}.",
+        "In FY2025, greenhouse gas emissions decreased by 10% compared with FY2024 at {boundary}, reaching {emissions} tCO2e.",
+        "In FY2025, {waste} tonnes of waste were recycled at {boundary}.",
+        "Our FY2025 renewable energy share reached 52% at {boundary}.",
+        "In FY2025, water recycled reached {recycled} kL at {boundary}."
+      ]
+    },
+    {
+      "key": "transition",
+      "name": "FY2025 transition and evidence gaps · synthetic",
+      "year": 2025,
+      "claims": [
+        "In FY2025, Scope 3 emissions decreased by 25% compared with FY2024 at {boundary}.",
+        "In FY2025, 12 hectares of land were restored at {boundary}.",
+        "In FY2025, water consumption reached {water} kL at {boundary}."
+      ]
+    }
+  ],
+  "submissions": [
+    {
+      "key": "accepted",
+      "status": "accepted",
+      "text": "FY2025 water consumption fell by 10% from FY2024. Synthetic records are attached.",
+      "note": "Simulated review: matching years, boundary and units support the 10% example. No real authority approval.",
+      "source": "Synthetic FY2025 resource performance, page 1"
+    },
+    {
+      "key": "under_review",
+      "status": "under_review",
+      "text": "FY2025 emissions fell by 10% compared with FY2024 at the example facility.",
+      "note": "Simulated review in progress: source and scope checks are being demonstrated.",
+      "source": "Synthetic FY2025 resource performance, page 1"
+    },
+    {
+      "key": "follow_up",
+      "status": "follow_up",
+      "text": "FY2025 energy consumption fell by 30% compared with FY2024.",
+      "note": "Simulated follow-up: the example history shows 10%, not 30%. Upload a corrected explanation.",
+      "source": "Synthetic FY2025 resource performance, page 1"
+    },
+    {
+      "key": "rejected",
+      "status": "rejected",
+      "text": "FY2025 Scope 3 emissions fell by 25% from FY2024.",
+      "note": "Simulated rejection: no Scope 3 baseline was supplied. This example illustrates missing evidence.",
+      "source": "Synthetic transition and evidence gaps, page 1"
+    }
+  ],
+  "thresholds": [
+    {
+      "metric": "ghg",
+      "unit": "tCO2e",
+      "threshold": 4.5,
+      "value": 4.1,
+      "basis": "period_total"
+    },
+    {
+      "metric": "pm_stack",
+      "unit": "mg/Nm3",
+      "threshold": 75,
+      "value": 92,
+      "basis": "dry_normalised"
+    },
+    {
+      "metric": "nox_stack",
+      "unit": "mg/Nm3",
+      "threshold": 200,
+      "value": 160,
+      "basis": "dry_normalised"
+    }
+  ],
+  "usageNotice": "Monthly totals are synthetic period totals ending at the displayed timestamp. They are not live meter telemetry.",
+  "approvalPolicy": "Accepted/rejected statuses are preconfigured fictional review scenarios, never approvals of real companies.",
+  "sources": [
+    {
+      "file": "data/demo-presentation.json",
+      "kind": "invented",
+      "purpose": "All company observations, claims, reviews, users and operational thresholds."
+    },
+    {
+      "file": "data/demo-data.json",
+      "kind": "invented",
+      "purpose": "Original Riverbend extraction example retained for comparison."
+    },
+    {
+      "kind": "live_external",
+      "purpose": "Open-Meteo, CPCB sample, EUMETSAT and ISS are retrieved by existing integrations; fixture data never replaces those feeds."
+    }
+  ]
+}

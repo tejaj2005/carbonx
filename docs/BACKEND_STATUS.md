@@ -1,3 +1,9 @@
+# Latest presentation update · 10 November 2026
+
+The website now seeds a four-company synthetic presentation sandbox. Public cards, company reports/claims, annual and monthly usage graphs, government review queues, cases, users, emissions examples and notifications are populated. Details: [DEMO_DATA.md](DEMO_DATA.md). Live environmental feeds retain their provider values; fixture measurements and decisions stay labelled synthetic. Existing example sessions upgrade on reload without resetting prior edits. 95 automated tests and the production build pass.
+
+Refresh requests do not overlap, partial failures retain existing values, public example duplicates are removed before expensive record queries, and government cases/history are queried inside the allowed scope. SQLite records, Supabase Auth and private Storage remain the active backend choices. The previously documented PostgreSQL network and GitHub access blockers remain unchanged.
+
 # CarbonX backend status — 10 November 2026
 
 ## Active configuration
@@ -73,3 +79,13 @@ The default home page and #home alias show Public, Company and Government entry 
 93 automated tests passed. Production TypeScript/build, formatting and Git whitespace checks passed. Browser inspection verified company/government demo entry, automatic redirect for an existing company session, home verification shortcuts, anonymous public access, government facility refresh, profiles, chart units and IST time axes. Desktop (1280px) and narrow (397px) layouts had no horizontal overflow. The government refresh returned real Open-Meteo context for the selected site; public imagery and live orbital coordinates loaded without a login.
 
 The working preview is http://127.0.0.1:8765/#home. Existing Git credentials belong to teja-rp and GitHub CLI has no authenticated account; publishing to tejaj2005/carbonx still requires repository write access. No credentials are embedded in tracked source; the deliberately public official CPCB sample key is documented separately.
+
+## Presentation verification
+
+The public home register was inspected with four labelled fictional company cards, 24 annual usage values and visible tCO2e figures. Company dashboards, submissions, multi-year history, monthly emissions/water/energy charts and Government Oversight counts (four companies, eight pending reviews, four open cases, one suspension scenario) were inspected in the running browser. Seeded monthly period-end labels remain within their proper IST month. Existing user records are retained.
+
+Demo entry uses local checksum-checked synthetic originals and does not depend on a cloud upload. Real uploads still use private Supabase Storage. A database snapshot was saved under the ignored .data/backups folder before local demo expansion.
+
+Live providers were not replaced by invented readings: ISS coordinates were available; some current city-source fetches retained their last successful readings, and the EUMETSAT source returned temporarily unavailable during this check. The interface reports those provider states rather than claiming all feeds are currently available.
+
+Final browser checks also confirmed 12 scoped thresholds, three generated synthetic follow-up alerts, government inbox delivery, four public company cards and no horizontal overflow at 1280px and 397px widths. The home page remains open for review.
