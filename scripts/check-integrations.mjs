@@ -3,66 +3,84 @@ import { providers } from '../server/providers.mjs';
 import { fetchJson } from '../server/environment.mjs';
 import { INDIA_METROS, fetchMetroModel, fetchCpcbStations } from '../server/india.mjs';
 import { aiTools } from '../server/ai.mjs';
-const rows = [];
-const city = INDIA_METROS.find((c) => c.id === 'hyderabad');
+import { satelliteProvider, sentinelHubTools } from '../server/sentinelhub.mjs';
+const groq = config.aiProvider === 'groq',
+  xai = config.aiProvider === 'xai';
+const key = groq ? process.env.GROQ_API_KEY : xai ? process.env.XAI_API_KEY : null;
 const results = await Promise.allSettled([
-  fetchMetroModel(city),
+  fetchMetroModel(INDIA_METROS.find((c) => c.id === 'hyderabad')),
   fetchJson(providers.satellite + '/collections/sentinel-2-l2a'),
   process.env.DATA_GOV_IN_API_KEY
-    ? fetchCpcbStations(city, process.env.DATA_GOV_IN_API_KEY)
+    ? fetchCpcbStations(
+        INDIA_METROS.find((c) => c.id === 'hyderabad'),
+        process.env.DATA_GOV_IN_API_KEY,
+      )
     : Promise.resolve(null),
-  process.env.XAI_API_KEY
-    ? fetch('https://api.x.ai/v1/models', {
-        headers: { Authorization: 'Bearer ' + process.env.XAI_API_KEY.trim() },
+  key
+    ? fetch(groq ? 'https://api.groq.com/openai/v1/models' : 'https://api.x.ai/v1/models', {
+        headers: { Authorization: 'Bearer ' + key.trim() },
         signal: AbortSignal.timeout(20000),
         redirect: 'error',
       }).then(async (r) => {
         if (!r.ok) throw Error('HTTP ' + r.status);
-        const j = await r.json();
-        return Boolean(j.data?.some((m) => m.id === config.aiModel));
+        return Boolean((await r.json()).data?.some((m) => m.id === config.aiModel));
       })
     : Promise.resolve(null),
+  satelliteProvider() === 'sentinelhub'
+    ? sentinelHubTools()
+        .accessToken()
+        .then(() => true)
+    : Promise.resolve(null),
 ]);
-const [model, satellite, station, grok] = results;
-rows.push({
-  service: 'Weather',
-  status: model.status === 'fulfilled' && model.value.weather ? 'connected' : 'unavailable',
-});
-rows.push({
-  service: 'Air quality model',
-  status: model.status === 'fulfilled' && model.value.air ? 'connected' : 'unavailable',
-});
-rows.push({
-  service: 'Satellite catalogue',
-  status:
-    satellite.status === 'fulfilled' && satellite.value.id === 'sentinel-2-l2a'
-      ? 'connected'
-      : 'unavailable',
-});
-rows.push({
-  service: 'Official CPCB stations',
-  status: !process.env.DATA_GOV_IN_API_KEY
-    ? 'key required'
-    : station.status === 'fulfilled'
-      ? station.value.status
-      : 'unavailable',
-});
-rows.push({
-  service: 'Grok',
-  status: !process.env.XAI_API_KEY
-    ? 'key required'
-    : grok.status === 'fulfilled'
-      ? grok.value
-        ? 'key and model verified'
-        : 'key accepted; selected model not listed'
-      : 'key check failed',
-});
+const [model, satellite, station, aiCheck, copernicus] = results;
+const rows = [
+  {
+    service: 'Weather',
+    status: model.status === 'fulfilled' && model.value.weather ? 'connected' : 'unavailable',
+  },
+  {
+    service: 'Air quality model',
+    status: model.status === 'fulfilled' && model.value.air ? 'connected' : 'unavailable',
+  },
+  {
+    service: 'Earth Search catalogue',
+    status:
+      satellite.status === 'fulfilled' && satellite.value.id === 'sentinel-2-l2a'
+        ? 'connected'
+        : 'unavailable',
+  },
+  {
+    service: 'Official CPCB stations',
+    status: !process.env.DATA_GOV_IN_API_KEY
+      ? 'key required'
+      : station.status === 'fulfilled'
+        ? station.value.status
+        : 'unavailable',
+  },
+  {
+    service: groq ? 'Groq' : xai ? 'Grok / xAI' : 'AI',
+    status: !key
+      ? 'key required'
+      : aiCheck.status === 'fulfilled'
+        ? aiCheck.value
+          ? 'key and model verified'
+          : 'key accepted; selected model not listed'
+        : 'key check failed',
+  },
+  {
+    service: 'Copernicus Sentinel Hub',
+    status:
+      satelliteProvider() !== 'sentinelhub'
+        ? 'optional; not selected'
+        : copernicus.status === 'fulfilled'
+          ? 'OAuth verified; imagery not tested'
+          : 'credential check failed',
+  },
+];
 if (process.argv.includes('--ai')) {
   const ai = aiTools(config);
-  if (!ai.available) rows.push({ service: 'Grok inference', status: 'not configured' });
-  else if (config.aiProvider !== 'xai')
-    rows.push({ service: 'Grok inference', status: 'select AI_PROVIDER=xai' });
-  else {
+  if (!ai.available) rows.push({ service: 'AI inference', status: 'not configured' });
+  else
     try {
       const r = await ai.structured(
         {
@@ -72,23 +90,22 @@ if (process.argv.includes('--ai')) {
           required: ['status'],
         },
         'carbonx_connection_check',
-        'Return the requested JSON status. This is a synthetic connection test.',
+        'Return the requested status. Synthetic connection test.',
         'Return status ok.',
       );
       rows.push({
-        service: 'Grok inference',
+        service: 'AI inference',
         status: r.data.status === 'ok' ? 'connected' : 'unexpected output',
       });
     } catch {
       rows.push({
-        service: 'Grok inference',
-        status: 'failed; check key, model access and credits',
+        service: 'AI inference',
+        status: 'failed; check key, model access, rate limits and credits',
       });
     }
-  }
 } else
   console.log(
-    'No AI inference requested. Add -- --ai only when you want a small billable synthetic AI test.',
+    'No AI inference requested. Use -- --ai for a small synthetic test subject to your account limits/billing.',
   );
 console.table(rows);
 if (

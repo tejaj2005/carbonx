@@ -47,12 +47,13 @@ export const integrations = [
   },
   {
     id: 'ai',
-    name: 'Grok / xAI',
+    name: 'Groq AI',
     type: 'Hosted AI',
-    source: 'https://docs.x.ai/overview',
+    source: 'https://console.groq.com/docs/quickstart',
     features:
       'Structured report extraction, cited answers, action recommendations and alert explanations. Evidence search remains lexical.',
-    status: 'Requires XAI_API_KEY and model access. Rules/search remain available without the key.',
+    status:
+      'Requires GROQ_API_KEY and model access. Rules/search remain available without the key.',
     limitations:
       'Configuration is not successful inference. AI cannot automatically make legal findings or suspend licences.',
   },

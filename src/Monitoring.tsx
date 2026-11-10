@@ -582,11 +582,11 @@ export function MonitoringPage() {
           <div>
             <Sparkles size={19} />
             <span>
-              <b>Grok AI explanation</b>
+              <b>AI explanation</b>
               <small>
                 {m.ai.configured
-                  ? 'Grok configured; connection must be verified'
-                  : 'Add your Grok API key to enable AI'}
+                  ? 'AI configured; connection must be verified'
+                  : 'Add your AI provider key to enable AI'}
               </small>
             </span>
           </div>
@@ -677,7 +677,7 @@ export function MonitoringPage() {
                 {m.ai.configured && (
                   <button className="text-link" disabled={busy} onClick={() => void explain(a.id)}>
                     <Sparkles size={14} />
-                    Explain with Grok
+                    Explain with AI
                   </button>
                 )}
               </article>

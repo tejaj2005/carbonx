@@ -227,8 +227,8 @@ function Shell() {
             <div className="example-banner">
               <Leaf size={16} />
               <span>
-                <b>Example workspace</b> · All source reports, organisations and historical values
-                here are synthetic.
+                <b>Example workspace</b> · Demo company records are synthetic. Published references
+                are labelled separately.
               </span>
               <button className="demo-role-switch" onClick={() => void switchDemo()}>
                 View this company as government

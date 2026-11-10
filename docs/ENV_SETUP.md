@@ -1,49 +1,51 @@
-# Environment setup
+# CarbonX environment setup
 
-The ignored .env file is prepared in the project root. Never attach a populated .env file in chat or commit it.
+The root .env is ignored by Git and Docker. .env.example contains blank placeholders only. Never paste another key into chat. Rotate the exposed key in the Groq console, then put the replacement in .env.
 
-1. Open .env and fill XAI_API_KEY with your Grok/xAI key.
-2. Leave XAI_MODEL=grok-4.7 unless your xAI account uses another supported text model.
-3. Optionally fill DATA_GOV_IN_API_KEY with your free personal OGD key for official CPCB station summaries.
-4. Restart CarbonX so the server reads the new values.
+## AI
 
-Open-Meteo weather, modelled air quality and Earth Search / Sentinel-2 use the public URLs already supplied. They do not need invented API keys. Leave those endpoint settings unchanged.
+1. In .env set AI_PROVIDER=groq, GROQ_API_KEY to your replacement key, and GROQ_MODEL=openai/gpt-oss-20b.
+2. Keep ENABLE_HOSTED_AI=true. No local model or separate OpenAI key is needed. The model's openai/ prefix is its identifier on Groq.
+3. Restart CarbonX. Run npm.cmd run integrations:check. To request a small synthetic inference test, run npm.cmd run integrations:check -- --ai.
+4. Normal AI processing sends selected uploaded report text/evidence to Groq. The checker sends only a synthetic status prompt. Account free-tier rate limits, model availability and any enabled billing still apply.
 
-## Check the connections
+The Groq adapter uses https://api.groq.com/openai/v1. It cannot send a Groq credential to xAI. Grok/xAI remains an explicit optional alternative using AI_PROVIDER=xai, XAI_API_KEY and XAI_MODEL. The pasted key was not stored or sent to either provider.
 
-From the project terminal:
+AI supports source-quoted claim extraction, cited evidence answers, evidence-gathering actions and alert explanations. Server prompts are in server/prompts.mjs. JSON output is locally validated; citations must match supplied evidence. AI does not approve claims, change licences or establish a legal violation. Missing keys leave the baseline available. Search remains lexical; no extra embeddings API is assumed.
 
-```powershell
-npm.cmd run integrations:check
-```
+## Weather and air quality
 
-This checks weather, atmospheric output, the Sentinel-2 catalogue, optional official stations and (when a key exists) xAI's model list. It prints statuses, never secret values. A successful model-list check does not prove inference.
+Open-Meteo weather and CAMS regional air-quality model endpoints already work without keys. They are contextual model output, not factory emissions telemetry.
+For official station summaries, create your own data.gov.in account key and place it in DATA_GOV_IN_API_KEY. Station availability, metadata and measurement basis must still be checked.
 
-For a small synthetic Grok inference test, using your API credits:
+## Credential-based satellite imagery
 
-```powershell
-npm.cmd run integrations:check -- --ai
-```
+1. Register/sign in to Copernicus Data Space at https://dataspace.copernicus.eu/.
+2. Open the Sentinel Hub dashboard, User Settings, OAuth clients, and create a client.
+3. Put its ID into COPERNICUS_CLIENT_ID and its secret into COPERNICUS_CLIENT_SECRET.
+4. Set SATELLITE_PROVIDER=sentinelhub and restart. Until then leave earth-search selected; its existing dated Sentinel-2 integration needs no key.
+5. In Site data, select a real facility and two historical windows, then request a comparison. Authentication alone is not an imagery result.
 
-No real report is sent by this test. Normal AI report processing sends extracted report passages and selected evidence to xAI. Grok is an external API with credits/billing; it is not a free local model.
+The adapter caches OAuth tokens, searches the site coordinates and requests daily Sentinel-2 NDVI/NDWI statistics in a 1 km UTM window at 10 m resolution. SCL classes 4/5/6 plus the data mask reject unsuitable pixels. At least 30 pixels and 20% valid coverage are required. Catalogue cloud cover describes the selected catalogue scene; indices describe a daily mosaic, not exclusive pixels from that scene. Free-account quotas and scene availability apply. No automatic switch to another provider hides an authentication failure.
 
-Grok supports structured extraction, cited evidence answers, action plans and monitoring explanations. Evidence search stays lexical in this configuration; no unsupported Grok embedding endpoint or second AI key is assumed. Missing credentials leave the labelled baseline active.
+ISS position is an orbital coordinate feed, not imagery or a company-location validator. It does not become facility emissions evidence when an API key is added.
 
-No AI is called automatically by the setup script, and no actual inference was verified while the key was blank. The --ai flag is an explicit optional request for inference.
+## Supabase
 
-## Other integrations
+See SUPABASE_SETUP.md for the four placeholders and where to find them. They are reserved and do not yet replace SQLite. Email is intentionally deferred.
 
-Official measured station data needs your own data.gov.in account key. No reusable key was found in the legacy workflow and an account key cannot be generated without the account.
+## Run
 
-Supabase migration and email are not connected by these environment changes. They remain separate later work; no nonfunctional Supabase or email keys were added to the active template.
+npm.cmd run build
+npm.cmd start
 
-For public HTTPS hosting, set HOST as required by the host, COOKIE_SECURE=true and ALLOW_DEMO=false, then provision a real government administrator. Keep this local preview's defaults for local review.
+Keep the server running for background polling. For HTTPS hosting set COOKIE_SECURE=true and disable public demo access. See production-readiness.md before deployment.
 
-## Official references
+## Official documentation
 
-- https://docs.x.ai/developers/model-capabilities/text/structured-outputs
-- https://docs.x.ai/developers/models
-- https://open-meteo.com/en/docs
-- https://open-meteo.com/en/docs/air-quality-api
-- https://github.com/Element84/earth-search
-- https://www.data.gov.in/help
+- https://console.groq.com/docs/quickstart
+- https://console.groq.com/docs/structured-outputs
+- https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html
+- https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Catalog/Examples.html
+- https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Statistical/Examples.html
+- https://wheretheiss.at/w/developer

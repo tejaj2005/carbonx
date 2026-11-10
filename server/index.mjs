@@ -32,7 +32,9 @@ server.listen(config.port, config.host, () =>
       ':' +
       config.port +
       ' | ' +
-      (config.aiEnabled ? 'AI configured' : 'keyword baseline; add XAI_API_KEY to .env for Grok'),
+      (config.aiEnabled
+        ? 'AI configured'
+        : 'keyword baseline; configure GROQ_API_KEY in .env for AI'),
   ),
 );
 monitoring.start();

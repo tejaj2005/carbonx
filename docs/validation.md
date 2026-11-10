@@ -104,3 +104,10 @@ See [UI review](UI_REVIEW.md) for the 23-route desktop/mobile inspection, visual
 ## Grok and environment integration
 
 The complete suite passed 59 checks after adding xAI/Grok request, configuration, citation, error-redaction and authorised alert-explanation tests. Production build and TypeScript checks passed. Live keyless checks returned connected for Open-Meteo weather, atmospheric model output and the Earth Search Sentinel-2 collection. Official CPCB stations and Grok correctly reported key required. No live Grok inference or paid request was made. The ignored .env was created with blank secret fields; .env.example is the tracked template. The restarted HTTP server returned 200 and reported provider xai, configured false, eight cities and stationConfigured false. See ENV_SETUP.md for the two key fields and manual connection check.
+
+## Groq / Copernicus / sourced reference update, 10 November 2026
+
+- npm.cmd test: 68 tests passed, including provider credential routing, strict JSON validation/redaction, OAuth token sharing/refresh, coordinate search, UTM site statistics and coverage abstention.
+- npm.cmd run build: TypeScript and Vite production build passed.
+- npm.cmd run integrations:check: live weather, air-quality model and Earth Search catalogue connected. CPCB and Groq report key required; Copernicus is optional and not selected. No AI inference or authenticated Copernicus imagery was claimed.
+- Active demo data moved to data/demo-data.json. Historical Infosys India electricity-share references added in data/reference-data.json with source URLs and explicit scope. No real company approval or facility monitoring record was fabricated.

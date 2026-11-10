@@ -1,9 +1,9 @@
 import path from 'node:path';
 export function readConfig(env = process.env) {
-  const selected = (env.AI_PROVIDER || 'xai').trim().toLowerCase();
+  const selected = (env.AI_PROVIDER || 'groq').trim().toLowerCase();
   const aiProvider = selected === 'grok' ? 'xai' : selected;
-  if (!['xai', 'ollama', 'openai'].includes(aiProvider))
-    throw Error('AI_PROVIDER must be xai, ollama or openai.');
+  if (!['groq', 'xai', 'ollama', 'openai'].includes(aiProvider))
+    throw Error('AI_PROVIDER must be groq, xai, ollama or openai.');
   const hostedEnabled = env.ENABLE_HOSTED_AI !== 'false';
   return {
     port: Number(env.PORT || 8765),
@@ -15,28 +15,33 @@ export function readConfig(env = process.env) {
     allowRegistration: env.ALLOW_REGISTRATION !== 'false',
     aiProvider,
     aiEnabled:
-      aiProvider === 'xai'
+      aiProvider === 'groq'
         ? hostedEnabled &&
-          Boolean(env.XAI_API_KEY?.trim()) &&
-          Boolean((env.XAI_MODEL || 'grok-4.7').trim())
-        : aiProvider === 'ollama'
-          ? Boolean(env.OLLAMA_MODEL)
-          : env.ALLOW_PAID_AI === 'true' &&
-            env.ENABLE_HOSTED_AI === 'true' &&
-            Boolean(env.OPENAI_API_KEY) &&
-            Boolean(env.OPENAI_MODEL),
+          Boolean(env.GROQ_API_KEY?.trim()) &&
+          Boolean((env.GROQ_MODEL || 'openai/gpt-oss-20b').trim())
+        : aiProvider === 'xai'
+          ? hostedEnabled &&
+            Boolean(env.XAI_API_KEY?.trim()) &&
+            Boolean((env.XAI_MODEL || 'grok-4.7').trim())
+          : aiProvider === 'ollama'
+            ? Boolean(env.OLLAMA_MODEL)
+            : env.ALLOW_PAID_AI === 'true' &&
+              env.ENABLE_HOSTED_AI === 'true' &&
+              Boolean(env.OPENAI_API_KEY) &&
+              Boolean(env.OPENAI_MODEL),
     aiModel:
-      aiProvider === 'xai'
-        ? (env.XAI_MODEL || 'grok-4.7').trim()
-        : aiProvider === 'ollama'
-          ? env.OLLAMA_MODEL || ''
-          : env.OPENAI_MODEL || '',
-    embeddingModel:
-      aiProvider === 'xai'
-        ? ''
-        : aiProvider === 'ollama'
-          ? env.OLLAMA_EMBEDDING_MODEL || ''
-          : env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+      aiProvider === 'groq'
+        ? (env.GROQ_MODEL || 'openai/gpt-oss-20b').trim()
+        : aiProvider === 'xai'
+          ? (env.XAI_MODEL || 'grok-4.7').trim()
+          : aiProvider === 'ollama'
+            ? env.OLLAMA_MODEL || ''
+            : env.OPENAI_MODEL || '',
+    embeddingModel: ['xai', 'groq'].includes(aiProvider)
+      ? ''
+      : aiProvider === 'ollama'
+        ? env.OLLAMA_EMBEDDING_MODEL || ''
+        : env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
     ocrEnabled: env.ENABLE_OCR !== 'false',
     production: process.argv.includes('--production'),
     monitoringEnabled: env.ENABLE_MONITORING !== 'false',

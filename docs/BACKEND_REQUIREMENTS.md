@@ -1,6 +1,6 @@
 # Backend deployment and Supabase inputs
 
-Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+Current configuration: Groq is selected with GROQ_API_KEY and GROQ_MODEL. No local model is required. See ENV_SETUP.md and SUPABASE_SETUP.md for exact setup and migration boundaries.
 
 This is a deployment proposal and requirements list, not a completed Supabase integration. Email is deliberately deferred until the core website, data and deployment path are ready.
 
@@ -12,15 +12,15 @@ It must remain running with persistent .data storage. A laptop shutdown or sleep
 
 ## Recommended target
 
-| Component                          | Target                                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------------- |
-| Public/company/government frontend | HTTPS static hosting                                                                  |
-| Identity and records               | Supabase Auth + Postgres with company/government RLS and audited server actions       |
-| Reports/exports                    | Private Supabase Storage with authenticated downloads or short-lived signed URLs      |
-| Light metro polling                | Supabase Cron → authenticated Edge Function → stored results                          |
-| PDF/OCR/COG processing             | Node worker with persistent/durable jobs                                              |
-| Free local AI                      | Always-running local/self-hosted Ollama, protected from public unauthenticated access |
-| Government email, later            | Approved notification outbox and separate transactional delivery provider             |
+| Component                          | Target                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| Public/company/government frontend | HTTPS static hosting                                                                    |
+| Identity and records               | Supabase Auth + Postgres with company/government RLS and audited server actions         |
+| Reports/exports                    | Private Supabase Storage with authenticated downloads or short-lived signed URLs        |
+| Light metro polling                | Supabase Cron → authenticated Edge Function → stored results                            |
+| PDF/OCR/COG processing             | Node worker with persistent/durable jobs                                                |
+| Hosted AI                          | Groq API key and model access; account free-tier limits apply; optional xAI is separate |
+| Government email, later            | Approved notification outbox and separate transactional delivery provider               |
 
 Moving to Supabase requires actual adapters/migrations: SQLite schema and queries, current sessions/password identities, file paths, role policies, ownership and public projections. A project URL alone cannot complete it. Existing real data must be backed up before migration; example-only reset and real-record migration are different choices.
 
@@ -35,7 +35,7 @@ Official limits can change. Check the linked sources before deployment.
 - Private Storage needs RLS and authenticated/signed access; company reports should not be public buckets. https://supabase.com/docs/guides/storage/buckets/fundamentals
 - Free backups need user-managed exports/off-site copies. Database backups do not include stored object contents. https://supabase.com/docs/guides/platform/backups
 
-A free pilot is realistic with bounded uploads and a known uptime trade-off. Continuous production enforcement, dependable storage recovery and a continuously available local AI worker require a separately validated hosting arrangement.
+A free pilot is realistic with bounded uploads and a known uptime trade-off. Continuous production enforcement, dependable storage recovery and a continuously available application worker require a separately validated hosting arrangement.
 
 ## What you need to provide when backend implementation begins
 

@@ -1,12 +1,12 @@
 # CarbonX API and data-source catalogue
 
-Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB requires DATA_GOV_IN_API_KEY. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the reserved backend migration placeholders.
 
 Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
 
 Scope: the actual implementation in this checkout, reviewed 10 November 2026. This file describes what is implemented, what has been exercised live, what is company supplied and what is synthetic. Credentials are never included.
 
-The public website also exposes a readable source catalogue. Its copy lives in src/data/integrations.ts. Runtime availability is shown by the connection panels, timestamps and provider results; a catalogue description is not proof that a service is connected.
+The retained source-catalogue component copy lives in src/data/integrations.ts. The simplified interface displays provider labels/timestamps with the relevant data; Settings shows sourced India reference benchmarks. A connector description is not proof of a live connection.
 
 ## Data-origin rules
 
@@ -97,7 +97,7 @@ These are internal authenticated APIs, not third-party measured feeds:
 - GET /api/monitoring: scoped rules/assessments, alert history, source state and the current user's inbox.
 - PATCH /api/notifications/:id/read: current user marks its own notice read.
 - POST /api/monitoring/watch: company owner chooses metro advisory subscriptions.
-- POST /api/monitoring/alerts/:id/explain: optional local AI explanation of an authorised alert.
+- POST /api/monitoring/alerts/:id/explain: optional configured AI explanation of an authorised alert.
 
 GHG totals use tCO2e over the reporting period. Stack PM/SO₂/NOx/CO use mg/Nm3 and the declared gas basis. There is no universal factory limit prefilled. All comparison dimensions must match. Invalid/stale/missing observations remain unassessed and do not clear an existing exceedance. Repeated exceedances update the ongoing alert without repeated notification spam.
 
@@ -124,3 +124,11 @@ The Node server checks persistent due times; metro provider polling defaults to 
 The recording/export used ISS position (https://api.wheretheiss.at), Open-Meteo AQ and Open-Meteo weather. Old node names suggested satellite, emission history and energy usage, but the endpoints do not establish those measurements. OpenAI/Gmail credential references were found; no reusable plaintext secret was recovered.
 
 The workflow was not executed, the lost n8n workspace was not contacted, and recipients from the old export were not reused. Gmail delivery is not part of the current app. See credential-audit.md and VIDEO_REVIEW.md.
+
+## Current additions: Groq, Copernicus and reference data
+
+- Groq: https://api.groq.com/openai/v1/chat/completions. Strict JSON schema plus local validation; prompts in server/prompts.mjs. GROQ_API_KEY stays server-only. Model openai/gpt-oss-20b is served by Groq; no OpenAI key is used. No live inference has been verified while the replacement key is blank. Official source: https://console.groq.com/docs/structured-outputs.
+- Copernicus: server/sentinelhub.mjs uses CDSE OAuth client credentials, catalogue coordinate intersections and Sentinel Hub Statistical API. A 1 km site window at 10 m sampling returns cloud-masked daily-mosaic NDVI/NDWI. Coverage below 20% or 30 pixels abstains. OAuth tokens are cached; errors do not echo tokens or secrets. SATELLITE_PROVIDER=sentinelhub explicitly selects it; credential failures never silently fall back. Contract tested, not live authenticated. Sources: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html and https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Statistical/Examples.html.
+- data/reference-data.json: Infosys India renewable electricity shares 67.5% (FY2023–24) and 77.7% (FY2024–25), a 10.2 percentage-point difference. Sources, boundaries and limitations are preserved in each record. Historical company-reported references are not facility emissions or approval decisions. See DEMO_DATA.md.
+- data/demo-data.json replaces inline Riverbend seeding. Supported evidence and government acceptance remain different statuses. Existing workspaces are not overwritten.
+- Supabase keys are reserved placeholders only. Current persistence is SQLite; migration/Auth/Storage/RLS are not yet connected. Email remains deferred.

@@ -48,7 +48,7 @@ export function Recommendations() {
         action={
           !data.settings.providers.hostedAI?.configured ? (
             <a className="button secondary" href="#settings">
-              Set up Grok
+              Set up AI
             </a>
           ) : (
             <button
@@ -497,6 +497,28 @@ export function SettingsPage() {
         title="Clear configuration. Controlled access."
         description="Check the active processing mode, provider setup and company team."
       />
+      <Panel title="India reference data">
+        <p className="muted">{data.settings.referenceData?.notice}</p>
+        <div className="provider-list">
+          {(data.settings.referenceData?.records || []).map((r: Item) => (
+            <div key={r.id}>
+              <span>
+                <b>
+                  {r.organization} · {r.period}
+                </b>
+                <small>
+                  {r.metric}: {r.value}
+                  {r.unit} · {r.boundary}
+                </small>
+              </span>
+              <a className="text-link" href={r.sourceUrl} target="_blank" rel="noreferrer">
+                Source <ArrowUpRight size={14} />
+              </a>
+            </div>
+          ))}
+        </div>
+        <p className="fine-print">{data.settings.referenceData?.comparison.interpretation}</p>
+      </Panel>
       <div className="settings-columns">
         <Panel title="Processing & provider status">
           <div className="provider-list">
@@ -533,9 +555,9 @@ export function SettingsPage() {
             <div>
               <span>
                 <b>Satellite imagery</b>
-                <small>Earth Search · Sentinel-2 L2A · NDVI / NDWI</small>
+                <small>{p.satellite.provider} · NDVI / NDWI</small>
               </span>
-              <Badge value="adapter_available" />
+              <Badge value={p.satellite.configured ? 'adapter_available' : 'not_configured'} />
             </div>
             <div>
               <span>
@@ -556,16 +578,16 @@ export function SettingsPage() {
             server and are excluded from Git.
           </p>
           <pre className="config-code">
-            AI_PROVIDER=xai{'\n'}XAI_API_KEY=your_key{'\n'}XAI_MODEL=grok-4.7{'\n'}
+            AI_PROVIDER=groq{'\n'}GROQ_API_KEY=your_key{'\n'}GROQ_MODEL=openai/gpt-oss-20b{'\n'}
             ENABLE_MONITORING=true
           </pre>
           <p className="fine-print">
-            Add your key in the server .env file and restart CarbonX. Grok processes selected report
-            evidence using your xAI account.
+            Add your key in the server .env file and restart CarbonX. Groq processes selected report
+            evidence using your Groq account.
           </p>
           <a
             className="text-link"
-            href="https://docs.x.ai/overview"
+            href="https://console.groq.com/docs/quickstart"
             target="_blank"
             rel="noreferrer"
           >

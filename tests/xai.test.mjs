@@ -5,7 +5,7 @@ import { readConfig } from '../server/config.mjs';
 import { providerEndpoints } from '../server/providers.mjs';
 test('Grok configuration uses only xAI credentials and is inactive without its key', () => {
   assert.equal(readConfig({}).aiEnabled, false);
-  assert.equal(readConfig({}).aiProvider, 'xai');
+  assert.equal(readConfig({}).aiProvider, 'groq');
   const c = readConfig({ XAI_API_KEY: 'fixture-not-a-real-key', AI_PROVIDER: 'grok' });
   assert.equal(c.aiEnabled, true);
   assert.equal(c.aiProvider, 'xai');

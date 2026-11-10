@@ -1,3 +1,4 @@
+import { satelliteProvider, copernicusComparison } from './sentinelhub.mjs';
 import { fromUrl } from 'geotiff';
 import proj4 from 'proj4';
 import { providers } from './providers.mjs';
@@ -194,6 +195,7 @@ export async function analyzeScene(scene, facility) {
   };
 }
 export async function satelliteComparison(facility, dates) {
+  if (satelliteProvider() === 'sentinelhub') return copernicusComparison(facility, dates);
   const beforeScene = await searchScene(facility, dates.beforeStart, dates.beforeEnd);
   const afterScene = await searchScene(facility, dates.afterStart, dates.afterEnd);
   if (beforeScene.id === afterScene.id)

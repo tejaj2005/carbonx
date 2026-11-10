@@ -1,0 +1,40 @@
+{
+  "updatedAt": "2026-11-10",
+  "kind": "published-company-reference",
+  "notice": "Historical company-reported benchmarks for India. Not live readings, facility measurements, independently verified CarbonX results or government approvals.",
+  "records": [
+    {
+      "id": "infosys-india-re-2024",
+      "organization": "Infosys",
+      "period": "FY2023–24",
+      "periodEnd": "2024-03-31",
+      "boundary": "India operations; electricity only",
+      "metric": "Renewable electricity share",
+      "value": 67.5,
+      "unit": "%",
+      "sourceTitle": "Infosys ESG Report 2023–24",
+      "sourceUrl": "https://www.infosys.com/sustainability/documents/infosys-esg-report-2023-24.pdf",
+      "sourceLocation": "ESG highlights, printed page 04",
+      "verification": "Company-published report highlight checked via indexed official source. Not imported into facility monitoring."
+    },
+    {
+      "id": "infosys-india-re-2025",
+      "organization": "Infosys",
+      "period": "FY2024–25",
+      "periodEnd": "2025-03-31",
+      "boundary": "India operations; electricity only",
+      "metric": "Renewable electricity share",
+      "value": 77.7,
+      "unit": "%",
+      "sourceTitle": "Infosys ESG Report 2024–25",
+      "sourceUrl": "https://www.infosys.com/about/esg/reports/2024-25.html",
+      "sourceLocation": "Performance overview / ESG highlights",
+      "verification": "Company-published figure checked on official report website. Not imported into facility monitoring."
+    }
+  ],
+  "comparison": {
+    "ids": ["infosys-india-re-2024", "infosys-india-re-2025"],
+    "percentagePointChange": 10.2,
+    "interpretation": "10.2 percentage-point increase in the reported India electricity share. This does not establish a 10.2% reduction in emissions."
+  }
+}

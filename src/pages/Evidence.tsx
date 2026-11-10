@@ -858,7 +858,7 @@ export function Environment() {
                       <span>
                         NDWI change <b>{number(satellite.payload.deltaNDWI, 3)}</b>
                       </span>
-                      <span>1 km sample window · 64 × 64 pixels</span>
+                      <span>{satellite.payload.before.sampling || '1 km sample window'}</span>
                     </div>
                     <p className="chart-note">{satellite.payload.interpretation}</p>
                   </>

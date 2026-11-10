@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "synthetic",
+  "notice": "Invented software test workspace. No real company or government approval is represented.",
+  "company": "Riverbend Example Company",
+  "reviewer": "Example Reviewer",
+  "facility": {
+    "name": "Example Riverbend Works",
+    "latitude": 17.385,
+    "longitude": 78.4867,
+    "boundary": "Riverbend facility"
+  },
+  "observations": [
+    {
+      "metric": "water_consumption",
+      "value": 1000,
+      "unit": "kL",
+      "year": 2023
+    },
+    {
+      "metric": "water_consumption",
+      "value": 800,
+      "unit": "m3",
+      "year": 2024
+    },
+    {
+      "metric": "energy_consumption",
+      "value": 10000,
+      "unit": "MWh",
+      "year": 2023
+    },
+    {
+      "metric": "energy_consumption",
+      "value": 9000,
+      "unit": "MWh",
+      "year": 2024
+    }
+  ],
+  "observationSource": "Synthetic example history; not a real company record",
+  "report": {
+    "name": "Riverbend sustainability report · synthetic",
+    "year": 2024,
+    "fileName": "synthetic-example-report.txt",
+    "text": "CARBONX SYNTHETIC EXAMPLE REPORT\nThis document is invented for software demonstration. It does not describe a real organization.\n\nIn FY2024, water consumption decreased by 20% compared with FY2023 at Riverbend facility, reaching 800 kL.\nIn FY2024, energy consumption decreased by 30% compared with FY2023 at Riverbend facility.\nIn FY2024, greenhouse gas emissions decreased by 15% compared with FY2023 at Riverbend facility.\n\fRESOURCE MANAGEMENT\nIn FY2024, 125 tonnes of waste were recycled at Riverbend facility.\nOur FY2024 renewable energy share reached 45% at Riverbend facility."
+  },
+  "submission": {
+    "text": "We report a 20% reduction in water consumption from FY2023 to FY2024 at Riverbend facility.",
+    "year": 2024,
+    "source": "Synthetic example sustainability report, source 1",
+    "status": "submitted"
+  },
+  "expectedOutcomes": [
+    {
+      "metric": "water_consumption",
+      "status": "supported",
+      "reason": "Synthetic history: (1000−800)/1000 = 20%. Supported evidence is not government approval."
+    },
+    {
+      "metric": "energy_consumption",
+      "status": "needs_review",
+      "reason": "Synthetic history shows 10%, while the report claims 30%."
+    },
+    {
+      "metric": "emissions",
+      "status": "insufficient_evidence",
+      "reason": "No comparable synthetic emissions baseline."
+    }
+  ],
+  "approvalPolicy": "No approval is pre-assigned to real data. An authenticated government reviewer may accept the synthetic submission during a demo."
+}

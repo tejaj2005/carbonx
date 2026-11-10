@@ -1,6 +1,6 @@
 # CarbonX production-readiness assessment
 
-Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB requires DATA_GOV_IN_API_KEY. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the reserved backend migration placeholders.
 
 Assessed locally on 10 November 2026. Status: functional full-stack India review pilot; not production-ready for continuous industrial enforcement or an internet-facing service.
 
@@ -12,8 +12,8 @@ Assessed locally on 10 November 2026. Status: functional full-stack India review
 - Eight-city India observatory: Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune and Ahmedabad.
 - Background provider polling every 30 minutes; persistent cache, source timestamps, last-good retention and visible missing/stale states.
 - Configurable facility operational thresholds, company-reported observations, strict matching and durable in-app company/government notifications.
-- Local Ollama adapter for structured extraction, optional embeddings, grounded answers, action plans and alert explanations. It is unconfigured here; the running app uses its labelled deterministic baseline.
-- Presentation walkthrough and animations. Synthetic company records and simulations stay labelled separately from actual public provider outputs.
+- Groq adapter for structured extraction, cited answers, action plans and alert explanations. Provider credentials remain blank here; the running app uses its labelled baseline.
+- Simplified company/government/public UI. Synthetic company records and historical published reference benchmarks remain distinct from actual provider output.
 
 ## API inventory and evidence
 
@@ -76,3 +76,7 @@ Exceedances create operational alerts, not automated legal findings. Government 
 - [Earth Search public imagery](https://github.com/Element84/earth-search/blob/main/README.md)
 - [Ollama generation API](https://docs.ollama.com/api/generate)
 - [Ollama embedding API](https://docs.ollama.com/api/embed)
+
+## Latest connection status
+
+Groq/Copernicus contract checks and the 68-test suite passed. The production build passed. The live connection checker returned weather, air model and Earth Search catalogue connected; Groq and CPCB need keys, and Copernicus remains unselected pending OAuth credentials. No model accuracy, real-company fraud finding, authenticated imagery result or Supabase migration was verified by those tests. The exposed chat key was not copied to .env or sent to a provider; use a rotated key.

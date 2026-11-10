@@ -63,23 +63,23 @@ No real company reports, production credentials, pre-claimed benchmark results o
 | Workspaces            | Company registration, session login, owner/reviewer/analyst roles, team creation, password changes and company-scoped access   |
 | Ingestion             | PDF text and tables, physical page references, local English OCR for scanned pages, UTF-8 text and versioned reprocessing      |
 | Retrieval             | 500-token passages with 80-token overlap; lexical search; optional persisted embeddings and hybrid retrieval                   |
-| Claims and SDGs       | Source-quoted extraction, 17-goal reference, explicit processing mode, optional structured local AI extraction                 |
+| Claims and SDGs       | Source-quoted extraction, 17-goal reference, explicit processing mode, optional structured hosted AI extraction                |
 | Historical evidence   | Canonical units, metric/facility/year/boundary matching, CSV preview and atomic import, scoped year-over-year graphs           |
 | Review                | Supported / needs review / insufficient evidence, reasons, comparison arithmetic, independent human decisions and activity log |
 | Environmental context | Open-Meteo weather and air quality; Earth Search Sentinel-2 L2A imagery, selected-site NDVI and NDWI                           |
-| Action plans          | Deterministic gap recommendations; optional cited local AI action planning; action status tracking                             |
+| Action plans          | Deterministic gap recommendations; optional cited hosted AI action planning; action status tracking                            |
 | Evaluation            | Human gold labels, development/test split, measured precision/recall/F1, status confusion matrix and lexical Recall@5          |
 | Export                | Protected CSV/PDF/JSON exports with the actual recorded findings and evidence                                                  |
 
 A supported claim means consistency with the supplied historical evidence and implemented rules. It is not an independent assurance, fraud verdict, SDG certification or carbon-credit validation.
 
-## Grok AI setup
+## Groq AI setup
 
-The default AI provider is Grok/xAI. The ignored .env file is prepared: add XAI_API_KEY and optionally DATA_GOV_IN_API_KEY, then restart CarbonX. The public weather, modelled air-quality and Sentinel-2 endpoints are already configured without keys. No local AI model is required.
+The default AI provider is Groq. The ignored .env file is prepared: add a rotated GROQ_API_KEY and optionally DATA_GOV_IN_API_KEY, then restart CarbonX. The public weather, modelled air-quality and Sentinel-2 endpoints are already configured without keys. No local AI model is required.
 
-Grok supports structured report extraction, cited evidence answers, action plans and alert explanations. It uses your xAI API credits/billing and sends selected report evidence to xAI when requested. Evidence retrieval remains lexical; no Grok embedding service is assumed. Missing credentials keep the labelled baseline active.
+Groq supports structured report extraction, cited evidence answers, action plans and alert explanations. It uses your Groq account limits/billing and sends selected report evidence to Groq when requested. Evidence retrieval remains lexical; no Groq embedding service is assumed. Missing credentials keep the labelled baseline active.
 
-Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. No live Grok inference has been verified while the key is blank.
+Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. No live Groq inference has been verified while the key is blank.
 
 See [simple environment setup](docs/ENV_SETUP.md). Supabase migration and email remain separate later work. Optional legacy providers are not selected by the default configuration.
 
@@ -151,3 +151,5 @@ The simplified interface groups related views into six company sections and four
 The UI simulation does not create monitoring observations or send email. Backend migration and government email are later implementation stages.
 
 The [UI review record](docs/UI_REVIEW.md) lists route, control, mobile and provider checks performed for the presentation cleanup.
+
+See docs/ENV_SETUP.md for Groq and optional Copernicus OAuth setup, docs/SUPABASE_SETUP.md for the four reserved backend values, and docs/DEMO_DATA.md for the editable synthetic/reference source files. Supabase is not connected by adding placeholders; SQLite remains active. Email is deferred.
