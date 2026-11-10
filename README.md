@@ -157,3 +157,7 @@ The [UI review record](docs/UI_REVIEW.md) lists route, control, mobile and provi
 See docs/ENV_SETUP.md for Groq and optional Copernicus OAuth setup, docs/SUPABASE_SETUP.md for the active backend configuration, and docs/DEMO_DATA.md for the editable synthetic/reference source files. Supabase is not connected by adding placeholders; SQLite metadata remains active; evidence uses private cloud Storage and Auth uses Supabase. Email is skipped.
 
 Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.
+
+## Continue on another device
+
+Clone this repository, then copy .env.example to .env and add your keys locally using [ENV_SETUP.md](docs/ENV_SETUP.md) and [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md). To use your existing Supabase project, set AUTH_BACKEND=supabase and STORAGE_BACKEND=supabase after configuring its URL and server key; keep DB_BACKEND=sqlite until PostgreSQL import is verified. Run npm.cmd ci, npm.cmd run build, then npm.cmd start. Fresh demo workspaces are generated automatically. Transfer .data privately if you need existing local account/report records.
