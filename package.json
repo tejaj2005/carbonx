@@ -14,7 +14,8 @@
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "check": "node --check server/index.mjs && tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "admin:create": "node --env-file-if-exists=.env scripts/create-admin.mjs"
   },
   "dependencies": {
     "cookie-parser": "1.4.7",

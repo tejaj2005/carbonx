@@ -31,8 +31,21 @@ npm.cmd start
 
 Node.js 22.13 or newer is required. Node.js 24 LTS is recommended. The server prints its URL. Check /api/health if the browser cannot connect. A different application occupying port 8765 produces a startup error; CarbonX does not terminate other processes.
 
+## Public, company and government portals
+
+The default page is the anonymous public transparency register. Separate sign-in pages serve company users and Government Oversight administrators. Public summaries refresh every 30 seconds; annual usage is not presented as continuous meter telemetry.
+
+Company owners control publication of reported usage and optional stored environmental summaries. Private reports, account details, internal review notes and exact site coordinates stay outside the public projection. Government administrators review submissions, manage licence records and cases, create company users and disable/restore access. Suspended or revoked CarbonX licences pause company changes while preserving read access.
+
+For a project review, use the labelled demo buttons. The banner can switch between government and company perspectives within the same synthetic company, preserving its submissions and decisions. Real accounts cannot use demo role switching. The walkthrough includes floating evidence cards, a controllable satellite illustration and an air-quality simulation. Simulated values do not become stored observations.
+
+Create a real government administrator from the project terminal with npm.cmd run admin:create. The interactive password prompt is hidden. Government privilege cannot be requested through company registration. Disable demos with ALLOW_DEMO=false for normal deployment.
+
+See [the project-review walkthrough](docs/project-review.md) for the presentation sequence and administrator setup.
+
 ## First use
 
+- Open the public page, then select Company portal or Government login for protected work.
 - Create a company workspace with your own email and a password of at least 12 characters. Each company starts empty.
 - Alternatively select **Open an example workspace** for a synthetic, isolated presentation workspace. This creates stored sample reports and observations and runs the actual processing pipeline. The example banner stays visible.
 - Upload a PDF or UTF-8 text report. Record its year, facility scope and reporting boundary.

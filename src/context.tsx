@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState, useRef } from 'react';
 import { api, mutate, setCSRF, type User, type Item } from './api';
 type Workspace = {
   user: User | null;
@@ -16,6 +16,8 @@ type Workspace = {
 const Context = createContext<Workspace>(null!);
 const blank = {
   dashboard: { stats: {}, coverage: [], observations: [], recentReports: [], recentActivity: [] },
+  government: { companies: [], actions: [], submissions: [], users: [], audit: [], stats: {} },
+  company: { registry: { licence_status: 'pending' }, submissions: [], actions: [], readings: [] },
   reports: [],
   claims: [],
   facilities: [],
@@ -35,6 +37,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [data, setData] = useState<Item>(blank),
     [message, setMessage] = useState(''),
     [claimId, setClaimId] = useState<string | null>(null);
+  const generation = useRef(0);
   useEffect(() => {
     api('/auth/me')
       .then((x) => {
@@ -53,7 +56,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    const requestGeneration = generation.current;
     try {
+      if (user.portal === 'government') {
+        const government = await api('/government/overview');
+        if (requestGeneration === generation.current) setData({ ...blank, government });
+        return;
+      }
       const keys = [
         'dashboard',
         'reports',
@@ -65,15 +74,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         'environment',
         'evaluations',
         'settings',
+        'company/overview',
       ];
       if (user.role !== 'analyst') keys.push('audit');
       if (user.role === 'owner') keys.push('team');
       const values = await Promise.all(keys.map((k) => api('/' + k)));
-      setData({ ...blank, ...Object.fromEntries(keys.map((k, i) => [k, values[i]])) });
+      if (requestGeneration === generation.current)
+        setData({
+          ...blank,
+          ...Object.fromEntries(
+            keys.map((k, i) => [k === 'company/overview' ? 'company' : k, values[i]]),
+          ),
+        });
     } catch (e) {
       toast((e as Error).message);
     } finally {
-      setLoading(false);
+      if (requestGeneration === generation.current) setLoading(false);
     }
   }, [user, toast]);
   useEffect(() => {
@@ -99,15 +115,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [data.jobs, refresh, toast]);
   const signIn = (x: any) => {
+    generation.current++;
     setCSRF(x.csrf);
     setData(blank);
+    setClaimId(null);
     setUser(x.user);
     setReady(true);
   };
   const logout = async () => {
     try {
       await mutate('/auth/logout');
+      generation.current++;
       setCSRF('');
+      location.hash = user?.portal === 'government' ? 'government-login' : 'company-login';
       setUser(null);
       setData(blank);
       setClaimId(null);

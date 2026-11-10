@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 export const uuid = (prefix = '') => prefix + crypto.randomUUID();
 export const now = () => new Date().toISOString();
-export function openDatabase(dataDir) {
+export function openDatabase(dataDir, { recoverJobs = true } = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(path.join(dataDir, 'uploads'), { recursive: true });
   const db = new DatabaseSync(path.join(dataDir, 'carbonx.sqlite'));
@@ -59,21 +59,23 @@ export function openDatabase(dataDir) {
       now(),
     );
   }
-  run(
-    'UPDATE jobs SET status=?,stage=?,error=?,updated_at=? WHERE status IN (?,?)',
-    'interrupted',
-    'Restart required',
-    'Processing was interrupted. Reprocess this report.',
-    now(),
-    'running',
-    'queued',
-  );
-  run(
-    'UPDATE reports SET status=?,warning=? WHERE status=?',
-    'interrupted',
-    'Processing was interrupted. Reprocess this report.',
-    'processing',
-  );
+  if (recoverJobs) {
+    run(
+      'UPDATE jobs SET status=?,stage=?,error=?,updated_at=? WHERE status IN (?,?)',
+      'interrupted',
+      'Restart required',
+      'Processing was interrupted. Reprocess this report.',
+      now(),
+      'running',
+      'queued',
+    );
+    run(
+      'UPDATE reports SET status=?,warning=? WHERE status=?',
+      'interrupted',
+      'Processing was interrupted. Reprocess this report.',
+      'processing',
+    );
+  }
   function insert(table, values) {
     if (
       !/^[a-z_][a-z0-9_]*$/.test(table) ||

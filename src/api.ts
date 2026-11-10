@@ -29,6 +29,7 @@ export type User = {
   name: string;
   email: string;
   role: 'owner' | 'analyst' | 'reviewer';
+  portal: 'company' | 'government';
   company: string;
   companyId: string;
   isExample: boolean;

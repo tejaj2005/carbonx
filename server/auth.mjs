@@ -25,6 +25,9 @@ export function authTools(store, config) {
       companyId: user.company_id,
       company: user.company_name,
       isExample: Boolean(user.is_example),
+      portal: store.get('SELECT user_id FROM government_admins WHERE user_id=?', user.id)
+        ? 'government'
+        : 'company',
     };
   }
   function issue(res, userId) {
@@ -53,7 +56,7 @@ export function authTools(store, config) {
       'SELECT u.*,c.name company_name,c.is_example,s.csrf,s.expires FROM sessions s JOIN users u ON u.id=s.user_id JOIN companies c ON c.id=u.company_id WHERE s.id=?',
       digest(token),
     );
-    if (!user || user.expires < now())
+    if (!user || user.disabled || user.expires < now())
       return res.status(401).json({ error: 'Your session expired. Please sign in.' });
     req.user = user;
     next();

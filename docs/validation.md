@@ -4,7 +4,7 @@ Performed locally on 10 November 2026. These are implementation checks, not a pr
 
 ## Automated checks
 
-- npm test: 26 checks passed, zero failures.
+- npm test: 38 checks passed, zero failures.
 - npm run build: TypeScript checking and Vite production build passed.
 - Production frontend is split into route and chart chunks; no oversized-chunk warning in the final build.
 - npm audit --omit=dev: zero reported vulnerabilities at the time checked. Advisory databases change over time.
@@ -60,3 +60,19 @@ The separate credential-audit document records ZIP-to-Git equality, all eight re
 - Docker execution and GitHub Actions execution: configuration supplied; local automated commands passed.
 
 For the remaining deployment and ingestion limits, see architecture.md and the root README.
+
+## Portal and presentation extension
+
+The final automated suite passed 38 checks. New coverage verifies company registration cannot grant government access; anonymous public reads; separate government/company login enforcement; protected government routes; submission/review handoff; transactional licence actions; stale-status rejection; immediate suspension restrictions; opt-in publication and private-field exclusion; canonical reading units; company-user creation and disable/restore behaviour; revocation of government capability on existing sessions; exact-company government demo isolation; same-company demo role switching with rejection of real accounts; and provisioning without interrupting active jobs.
+
+Browser verification used the running production build at 1366 by 900 and the default approximately 396 by 604 narrow viewport. It exercised the government overview, registry, protected evidence view, licence suspension and restoration, public licence status, follow-up decision, oversight case creation and user-creation form.
+
+The same synthetic company was switched into its company perspective. Its government review note and case were visible. A synthetic usage reading and another claim were submitted; switching back showed the new claim in the government queue. The public company detail showed the published reading without its private source reference.
+
+The animated walkthrough played and advanced through stages. Satellite scan animation could be started/paused. The air-quality simulation slider changed both the labelled invented concentration and the displayed particle count. These interactions did not issue provider requests or store simulation readings.
+
+Mobile navigation, scrollable lower company links, responsive public/registry views and document widths were checked. No document-level horizontal overflow was observed in the inspected final views. The temporary viewport override was reset, no browser console errors were returned in the final check, and the public tab was retained.
+
+Only synthetic presentation records were changed during UI checks. The demo licence was restored to Active. No external government licence, government service, n8n workspace or real company account was changed. A real production government administrator has not been provisioned; use the protected setup command.
+
+The public page remains a local anonymous route. No internet-facing production deployment or continuous meter integration was completed by this extension.

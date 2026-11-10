@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SatelliteScene } from '../VisualJourney';
 import {
   ResponsiveContainer,
   LineChart,
@@ -742,6 +743,18 @@ export function Environment() {
             )}
           </Panel>
           <Panel title="Vegetation & water context" kicker="SENTINEL-2 L2A · EARTH SEARCH">
+            <div className="environment-visual-intro">
+              <SatelliteScene />
+              <div>
+                <span className="eyebrow">A DIFFERENT PERSPECTIVE</span>
+                <h3>Observe the site across two moments in time.</h3>
+                <p>
+                  Choose an earlier and later window. The comparison below uses actual satellite
+                  observations when available.
+                </p>
+                <small>Animated illustration · not a live satellite position</small>
+              </div>
+            </div>
             <form className="satellite-form" onSubmit={imagery}>
               <fieldset>
                 <legend>Earlier observation window</legend>

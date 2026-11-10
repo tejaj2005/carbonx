@@ -87,3 +87,17 @@ SQLite, source documents, OCR caches, .env and local audit materials are ignored
 ## Deployment limits
 
 Verified as a local single-instance application. No claim is made of a public deployment, load-tested capacity, disaster recovery, penetration test, real-company benchmark, legal compliance certification or live hosted AI without fresh credentials. Production operation needs HTTPS, trusted proxy configuration, managed identity/account recovery, secure document handling and an operational backup/monitoring plan.
+
+## Government, company and public separation
+
+Government authority is a separate government_admins association, resolved from the database for every request. Existing company owner/reviewer/analyst roles are preserved. Government endpoints use a dedicated guard; company endpoints reject government sessions. Company self-registration never grants government authority.
+
+Government administrators can manage the company registry, inspect protected reports, review separately submitted claims, record cases/notices, update licence state with an expected prior state, create company users, disable/re-enable accounts and export the register. Licence changes, review decisions and access mutations are transactional and audited. A suspended or revoked licence blocks company writes immediately; authentication and appropriate read access remain available.
+
+The public API is registered before authentication and returns an explicit projection only for published companies. It exposes approved company identity/licence metadata, reported usage by scope, time-stamped company readings, optional projected environmental summaries and explicitly public notice text. It excludes account details, report files/passages, private case/review notes, internal source references and exact coordinates. Public polling reads stored results and does not trigger provider requests.
+
+Recent reading submission validates compatible canonical units, company/facility ownership and observation time. These are company-submitted values; continuous meter telemetry is not connected.
+
+Real government admins are provisioned interactively through scripts/create-admin.mjs. This database connection disables startup job recovery. A government demo is restricted to one exact synthetic company. Its role switch creates a scoped demo perspective and rotates the session within that company; real accounts are rejected. Generation checks discard stale workspace responses after account switches.
+
+Presentation effects are SVG/CSS illustrations with reduced-motion support. Air-quality slider values and satellite scanning animations are labelled simulations and do not change evidence or administrative decisions.

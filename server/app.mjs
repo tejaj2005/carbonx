@@ -16,6 +16,7 @@ import { SDGS, METRICS, normalize } from './domain.mjs';
 import { atmosphericContext, satelliteComparison } from './environment.mjs';
 import { evaluate } from './evaluation.mjs';
 import { exportRows, csvExport, writePdf } from './exports.mjs';
+import { governanceTools } from './governance.mjs';
 const status = z.enum(['supported', 'needs_review', 'insufficient_evidence']);
 const metric = z.enum(METRICS);
 const year = z.coerce.number().int().min(1990).max(2100);
@@ -57,6 +58,7 @@ export function createApp(config) {
     work = pipeline(store, config, ai),
     auth = authTools(store, config),
     app = express();
+  const governance = governanceTools(store, config, auth);
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
   app.use(
@@ -95,6 +97,7 @@ export function createApp(config) {
   app.get('/api/health', (_req, res) =>
     res.json({ status: 'ok', app: 'carbonx', version: '1.0.0', database: 'ready' }),
   );
+  governance.publicRoutes(app);
   const limiter = rateLimit({
     windowMs: 60000,
     limit: config.testing ? 1000 : 20,
@@ -147,18 +150,32 @@ export function createApp(config) {
     res.status(201).json({ user: auth.publicUser(user), csrf });
   });
   app.post('/api/auth/login', async (req, res) => {
-    const b = z.object({ email: z.email(), password: z.string().max(128) }).parse(req.body);
+    const b = z
+      .object({
+        email: z.email(),
+        password: z.string().max(128),
+        portal: z.enum(['company', 'government']).optional(),
+      })
+      .parse(req.body);
     const user = store.get(
       'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.email=?',
       b.email.toLowerCase(),
     );
-    if (!user || !(await checkPassword(b.password, user.password_hash)))
+    if (
+      !user ||
+      user.disabled ||
+      (b.portal && b.portal !== (governance.authority(user) ? 'government' : 'company')) ||
+      !(await checkPassword(b.password, user.password_hash))
+    )
       throw error('Email or password is incorrect.', 401);
     const csrf = auth.issue(res, user.id);
     store.audit(user.company_id, user.id, 'session.started', 'user', user.id);
     res.json({ user: auth.publicUser(user), csrf });
   });
-  app.post('/api/auth/demo', async (_req, res) => {
+  app.post('/api/auth/demo', async (req, res) => {
+    const demoPortal = z
+      .object({ portal: z.enum(['company', 'government']).default('company') })
+      .parse(req.body || {}).portal;
     if (!config.allowDemo) throw error('Example workspaces are disabled.', 403);
     const user = await createAccount(
       'Riverbend Example Company',
@@ -226,9 +243,74 @@ export function createApp(config) {
     store.insert('reports', report);
     const job = work.enqueue(report);
     store.audit(user.company_id, user.id, 'example.created', 'company', user.company_id);
+    governance.registry(user.company_id);
+    store.run(
+      'UPDATE company_registry SET licence_status=?,licence_number=?,public_visible=1,public_description=? WHERE company_id=?',
+      'active',
+      'CX-DEMO-' + user.company_id.slice(-6).toUpperCase(),
+      'Synthetic demonstration company. All usage and claims are invented examples.',
+      user.company_id,
+    );
+    store.insert('submissions', {
+      id: uuid('sub_'),
+      company_id: user.company_id,
+      text: 'We report a 20% reduction in water consumption from FY2023 to FY2024 at Riverbend facility.',
+      year: 2024,
+      source: 'Synthetic example sustainability report, source 1',
+      status: 'submitted',
+      review_note: '',
+      submitted_by: user.id,
+      reviewed_by: null,
+      created_at: now(),
+      updated_at: now(),
+    });
+    if (demoPortal === 'government')
+      store.insert('government_admins', {
+        user_id: user.id,
+        authority: 'Government Oversight',
+        demo_company_id: user.company_id,
+      });
     res.status(201).json({ user: auth.publicUser(user), csrf, jobId: job.id });
   });
   app.use('/api', auth.requireAuth, auth.csrfCheck);
+  app.post('/api/auth/demo-switch', async (req, res) => {
+    if (!config.allowDemo || !req.user.is_example)
+      throw error('Role switching is available only in a synthetic presentation workspace.', 403);
+    const b = z.object({ portal: z.enum(['company', 'government']) }).parse(req.body),
+      existing = governance.authority(req.user);
+    if (existing && existing.demo_company_id !== req.user.company_id)
+      throw error('This authority cannot switch company roles.', 403);
+    const id = uuid('usr_'),
+      password_hash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+    store.transaction(() => {
+      store.insert('users', {
+        id,
+        company_id: req.user.company_id,
+        name: b.portal === 'government' ? 'Example Government Officer' : 'Example Company Owner',
+        email: 'demo-' + uuid() + '@carbonx.invalid',
+        password_hash,
+        role: 'owner',
+        disabled: 0,
+        created_at: now(),
+      });
+      if (b.portal === 'government')
+        store.insert('government_admins', {
+          user_id: id,
+          authority: 'Government Oversight',
+          demo_company_id: req.user.company_id,
+        });
+      store.audit(req.user.company_id, id, 'demo.role_switched', 'user', id, { portal: b.portal });
+    });
+    const user = store.get(
+      'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.id=?',
+      id,
+    );
+    auth.logout(req, res);
+    const csrf = auth.issue(res, id);
+    res.json({ user: auth.publicUser(user), csrf });
+  });
+  governance.protectedRoutes(app);
+  app.use('/api', governance.companyGuard);
   const company = (req) => req.user.company_id;
   function owned(table, id, tenant) {
     const row = store.get('SELECT * FROM ' + table + ' WHERE id=? AND company_id=?', id, tenant);
