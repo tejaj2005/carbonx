@@ -49,3 +49,9 @@ Keep the server running for background polling. For HTTPS hosting set COOKIE_SEC
 - https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Catalog/Examples.html
 - https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Statistical/Examples.html
 - https://wheretheiss.at/w/developer
+
+## Windows certificate trust
+
+On this Windows machine the local Node process required the system trust store for provider HTTPS connections. The ignored .env now includes NODE_OPTIONS=--use-system-ca. TLS certificate and hostname verification remain enabled; no custom certificate is bundled. This flag requires a supporting Node version (Node 24+ recommended); it is local configuration, not a new API credential. Standard npm start, dev and integrations:check read it through --env-file-if-exists=.env. The public .env.example does not force this machine-specific setting.
+
+Reference: https://nodejs.org/api/cli.html#--use-system-ca
