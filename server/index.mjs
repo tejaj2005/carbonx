@@ -3,7 +3,7 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { config } from './config.mjs';
 import { createApp } from './app.mjs';
-const { app, store, errorHandler } = createApp(config);
+const { app, store, monitoring, errorHandler } = createApp(config);
 const server = createServer(app);
 let vite;
 if (config.production) {
@@ -32,11 +32,15 @@ server.listen(config.port, config.host, () =>
       ':' +
       config.port +
       ' | ' +
-      (config.aiEnabled ? 'hosted RAG enabled' : 'keyword baseline; configure hosted AI in .env'),
+      (config.aiEnabled
+        ? 'AI configured'
+        : 'keyword baseline; configure free local Ollama in .env'),
   ),
 );
+monitoring.start();
 async function stop() {
   server.close(async () => {
+    await monitoring.stop();
     if (vite) await vite.close();
     store.close();
     process.exit(0);

@@ -487,7 +487,7 @@ export function SettingsPage() {
           <div className="provider-list">
             <div>
               <span>
-                <b>Hosted AI & embeddings</b>
+                <b>AI extraction & embeddings</b>
                 <small>
                   {p.hostedAI?.configured ? p.hostedAI.model : 'Keyword baseline is active'}
                 </small>
@@ -541,17 +541,16 @@ export function SettingsPage() {
             server and are excluded from Git.
           </p>
           <pre className="config-code">
-            ENABLE_HOSTED_AI=true{'\n'}OPENAI_API_KEY=your_new_key{'\n'}
-            OPENAI_MODEL=your_chosen_model{'\n'}OPENAI_EMBEDDING_MODEL=text-embedding-3-small{'\n'}
-            ENABLE_OCR=true
+            AI_PROVIDER=ollama{'\n'}OLLAMA_MODEL=your_local_model{'\n'}
+            OLLAMA_EMBEDDING_MODEL=your_local_embedding_model{'\n'}ENABLE_MONITORING=true
           </pre>
           <p className="fine-print">
-            Hosted processing sends extracted passages to the configured provider. No credential was
-            recovered from the old n8n workflow. New credentials are required for hosted AI.
+            Local AI needs a running Ollama service and installed model. No credential was recovered
+            from the old n8n workflow. New credentials are required for hosted AI.
           </p>
           <a
             className="text-link"
-            href="https://developers.openai.com/api/docs/guides/structured-outputs"
+            href="https://docs.ollama.com/capabilities/structured-outputs"
             target="_blank"
             rel="noreferrer"
           >

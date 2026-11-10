@@ -136,6 +136,7 @@ export function normalize(value, unit, metric) {
     land_area: 'ha',
   }[metric];
   if (expected && n[0] !== expected) return null;
+  if (metric === 'renewable_share' && Number(value) > 100) return null;
   return { value: Number(value) * n[1], unit: n[0] };
 }
 export function parseClaim(text, meta = {}) {
@@ -150,8 +151,15 @@ export function parseClaim(text, meta = {}) {
       ? 'increase'
       : null;
   const years = [...text.matchAll(/\b(?:FY\s*)?(20\d{2})\b/g)].map((x) => Number(x[1]));
+  const fiscalEnd = (start, end) => {
+    if (!end) return Number(start);
+    const n = end.length === 2 ? Math.floor(Number(start) / 100) * 100 + Number(end) : Number(end);
+    return n < Number(start) ? n + 100 : n;
+  };
+  for (const f of text.matchAll(/\b(?:FY\s*)?(20\d{2})\s*[-–/]\s*(20\d{2}|\d{2})\b/g))
+    years.push(fiscalEnd(f[1], f[2]));
   const explicitBaseline = text.match(
-    /(?:from|versus|vs\.?|compared (?:with|to)|against)\s*(?:FY\s*)?(20\d{2})/i,
+    /(?:from|versus|vs\.?|compared (?:with|to)|against)\s*(?:FY\s*)?(20\d{2})(?:\s*[-–/]\s*(20\d{2}|\d{2}))?/i,
   );
   return {
     text,
@@ -167,7 +175,7 @@ export function parseClaim(text, meta = {}) {
         ? '%'
         : null,
     year: years.length ? Math.max(...years) : meta.year || null,
-    baseline_year: explicitBaseline ? Number(explicitBaseline[1]) : null,
+    baseline_year: explicitBaseline ? fiscalEnd(explicitBaseline[1], explicitBaseline[2]) : null,
     boundary: meta.boundary || null,
     facility_id: meta.facility_id || null,
     claimed_change: pct && direction ? Number(pct[1]) : null,
@@ -294,7 +302,32 @@ export function verifyClaim(claim, observations) {
         ? 'Claimed change differs from the historical calculation by more than 2 percentage points.'
         : 'Claimed change is within 2 percentage points of the historical calculation.',
     );
-    return { status: difference > 2 ? 'needs_review' : 'supported', reasons, comparison };
+    let quantityMismatch = false;
+    if (claim.value !== null && claim.value !== undefined) {
+      const quantity = normalize(claim.value, claim.unit, claim.metric);
+      if (!quantity || quantity.unit !== c.normalized_unit)
+        return insufficient('The explicit quantity has no compatible unit for this comparison.');
+      const difference = Math.abs(quantity.value - c.normalized_value),
+        tolerance = Math.max(0.000001, Math.abs(c.normalized_value) * 0.005);
+      quantityMismatch = difference > tolerance;
+      comparison.explicitQuantity = {
+        claimed: quantity.value,
+        recorded: c.normalized_value,
+        unit: quantity.unit,
+        difference,
+        tolerance,
+      };
+      reasons.push(
+        quantityMismatch
+          ? 'The explicit current-year quantity contradicts the matching historical observation.'
+          : 'The explicit current-year quantity also matches the recorded observation.',
+      );
+    }
+    return {
+      status: difference > 2 || quantityMismatch ? 'needs_review' : 'supported',
+      reasons,
+      comparison,
+    };
   }
   const n = normalize(claim.value, claim.unit, claim.metric);
   if (!n || n.unit !== c.normalized_unit)

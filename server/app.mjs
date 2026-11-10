@@ -17,6 +17,7 @@ import { atmosphericContext, satelliteComparison } from './environment.mjs';
 import { evaluate } from './evaluation.mjs';
 import { exportRows, csvExport, writePdf } from './exports.mjs';
 import { governanceTools } from './governance.mjs';
+import { monitoringTools } from './monitoring.mjs';
 const status = z.enum(['supported', 'needs_review', 'insufficient_evidence']);
 const metric = z.enum(METRICS);
 const year = z.coerce.number().int().min(1990).max(2100);
@@ -59,6 +60,8 @@ export function createApp(config) {
     auth = authTools(store, config),
     app = express();
   const governance = governanceTools(store, config, auth);
+  const monitoring = monitoringTools(store, config, ai);
+  for (const c of store.q('SELECT DISTINCT company_id FROM claims')) work.refresh(c.company_id);
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
   app.use(
@@ -98,6 +101,7 @@ export function createApp(config) {
     res.json({ status: 'ok', app: 'carbonx', version: '1.0.0', database: 'ready' }),
   );
   governance.publicRoutes(app);
+  monitoring.publicRoutes(app);
   const limiter = rateLimit({
     windowMs: 60000,
     limit: config.testing ? 1000 : 20,
@@ -280,25 +284,41 @@ export function createApp(config) {
       existing = governance.authority(req.user);
     if (existing && existing.demo_company_id !== req.user.company_id)
       throw error('This authority cannot switch company roles.', 403);
-    const id = uuid('usr_'),
-      password_hash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+    // Reuse each synthetic role's identity so inboxes and read state survive a walkthrough.
+    const previous =
+      b.portal === 'government'
+        ? store.get(
+            'SELECT u.id FROM users u JOIN government_admins g ON g.user_id=u.id WHERE u.company_id=? AND g.demo_company_id=? AND u.disabled=0 ORDER BY u.created_at LIMIT 1',
+            req.user.company_id,
+            req.user.company_id,
+          )
+        : store.get(
+            "SELECT u.id FROM users u LEFT JOIN government_admins g ON g.user_id=u.id WHERE u.company_id=? AND g.user_id IS NULL AND u.role='owner' AND u.disabled=0 ORDER BY u.created_at LIMIT 1",
+            req.user.company_id,
+          );
+    const id = previous?.id || uuid('usr_');
+    const password_hash = previous
+      ? null
+      : await hashPassword(crypto.randomBytes(32).toString('hex'));
     store.transaction(() => {
-      store.insert('users', {
-        id,
-        company_id: req.user.company_id,
-        name: b.portal === 'government' ? 'Example Government Officer' : 'Example Company Owner',
-        email: 'demo-' + uuid() + '@carbonx.invalid',
-        password_hash,
-        role: 'owner',
-        disabled: 0,
-        created_at: now(),
-      });
-      if (b.portal === 'government')
-        store.insert('government_admins', {
-          user_id: id,
-          authority: 'Government Oversight',
-          demo_company_id: req.user.company_id,
+      if (!previous) {
+        store.insert('users', {
+          id,
+          company_id: req.user.company_id,
+          name: b.portal === 'government' ? 'Example Government Officer' : 'Example Company Owner',
+          email: 'demo-' + uuid() + '@carbonx.invalid',
+          password_hash,
+          role: 'owner',
+          disabled: 0,
+          created_at: now(),
         });
+        if (b.portal === 'government')
+          store.insert('government_admins', {
+            user_id: id,
+            authority: 'Government Oversight',
+            demo_company_id: req.user.company_id,
+          });
+      }
       store.audit(req.user.company_id, id, 'demo.role_switched', 'user', id, { portal: b.portal });
     });
     const user = store.get(
@@ -309,6 +329,7 @@ export function createApp(config) {
     const csrf = auth.issue(res, id);
     res.json({ user: auth.publicUser(user), csrf });
   });
+  monitoring.protectedRoutes(app);
   governance.protectedRoutes(app);
   app.use('/api', governance.companyGuard);
   const company = (req) => req.user.company_id;
@@ -331,9 +352,14 @@ export function createApp(config) {
       providers: {
         hostedAI: {
           configured: ai.available,
+          provider: ai.provider,
           model: config.aiModel || null,
           embeddingModel: config.embeddingModel,
-          mode: ai.available ? 'hosted-rag' : 'keyword-baseline',
+          mode: ai.available
+            ? ai.provider === 'ollama'
+              ? 'local-rag'
+              : 'hosted-rag'
+            : 'keyword-baseline',
         },
         ocr: { enabled: config.ocrEnabled, language: 'English' },
         weather: { provider: 'Open-Meteo', configured: true },
@@ -798,7 +824,7 @@ export function createApp(config) {
       } catch {
         answer = {
           answer:
-            'The hosted answer service is unavailable. Inspect the retrieved source passages below.',
+            'The AI answer service is unavailable. Inspect the retrieved source passages below.',
           citations: [],
           model: null,
         };
@@ -817,7 +843,7 @@ export function createApp(config) {
   app.post('/api/recommendations/generate', reviewers, async (req, res) => {
     if (!ai.available)
       throw error(
-        'Configure a hosted AI key and model on the server to generate an AI-assisted plan.',
+        'Configure a free local Ollama model on the server to generate an AI-assisted plan.',
         409,
       );
     const claims = store.q(
@@ -862,7 +888,7 @@ export function createApp(config) {
         action.title.slice(0, 160),
         action.action.slice(0, 3000),
         action.priority,
-        'hosted:' + result.model,
+        (ai.provider === 'ollama' ? 'local:' : 'hosted:') + result.model,
         company(req),
         action.claimId,
       );
@@ -1156,5 +1182,5 @@ export function createApp(config) {
       console.error('CarbonX request failed:', e.name, e.code || '', safeError(e.message));
   };
   app.use(errorHandler);
-  return { app, store, work, ai, errorHandler };
+  return { app, store, work, ai, monitoring, errorHandler };
 }

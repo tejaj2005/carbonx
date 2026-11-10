@@ -18,6 +18,10 @@ export function pipeline(store, config, ai) {
     const observations = store.q('SELECT * FROM observations WHERE company_id=?', company);
     for (const claim of store.q('SELECT * FROM claims WHERE company_id=?', company)) {
       const r = verifyClaim(claim, observations);
+      const changed =
+        claim.status !== r.status ||
+        claim.comparison_json !== JSON.stringify(r.comparison) ||
+        claim.reason_json !== JSON.stringify(r.reasons);
       store.run(
         'UPDATE claims SET status=?,reason_json=?,comparison_json=? WHERE id=? AND company_id=?',
         r.status,
@@ -26,8 +30,17 @@ export function pipeline(store, config, ai) {
         claim.id,
         company,
       );
+      if (changed && claim.review_state !== 'unreviewed') {
+        store.run('UPDATE claims SET review_state=? WHERE id=?', 'unreviewed', claim.id);
+        store.audit(company, null, 'claim.evidence_changed', 'claim', claim.id, {
+          previousStatus: claim.status,
+          currentStatus: r.status,
+          previousDecision: claim.review_state,
+          requiresNewReview: true,
+        });
+      }
       const existing = store.get(
-        'SELECT id FROM recommendations WHERE company_id=? AND claim_id=?',
+        'SELECT * FROM recommendations WHERE company_id=? AND claim_id=?',
         company,
         claim.id,
       );
@@ -40,9 +53,9 @@ export function pipeline(store, config, ai) {
       const action =
         r.reasons.join(' ') +
         ' Preserve matching units, years, facility and reporting boundary. Record reviewer rationale before closing this item.';
-      if (existing)
+      if (existing && (!/^(hosted|local):/.test(String(existing.method)) || changed))
         store.run(
-          'UPDATE recommendations SET title=?,action=?,priority=? WHERE id=?',
+          'UPDATE recommendations SET title=?,action=?,priority=?,method=?,status=? WHERE id=?',
           title,
           action,
           r.status === 'needs_review'
@@ -50,9 +63,13 @@ export function pipeline(store, config, ai) {
             : r.status === 'insufficient_evidence'
               ? 'medium'
               : 'low',
+          'rules',
+          changed && r.status !== 'supported' && existing.status === 'done'
+            ? 'open'
+            : existing.status,
           existing.id,
         );
-      else
+      else if (!existing)
         store.insert('recommendations', {
           id: uuid('rec_'),
           company_id: company,
@@ -126,7 +143,7 @@ export function pipeline(store, config, ai) {
       if (ai.available) {
         try {
           claims = await ai.extract(chunks, report, SDGS);
-          mode = 'hosted-rag';
+          mode = ai.provider === 'ollama' ? 'local-rag' : 'hosted-rag';
           if (claims.rejectedQuotes)
             warnings.push(
               claims.rejectedQuotes +
@@ -134,7 +151,7 @@ export function pipeline(store, config, ai) {
             );
         } catch {
           warnings.push(
-            'Hosted claim extraction failed. Results use the keyword baseline and require reviewer confirmation.',
+            'AI claim extraction failed. Results use the keyword baseline and require reviewer confirmation.',
           );
           claims = extractBaseline(chunks, report);
         }

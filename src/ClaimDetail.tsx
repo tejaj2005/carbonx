@@ -121,9 +121,11 @@ export function ClaimDetail() {
             <Badge value={claim.status} />
             <SdgChips goals={claim.sdgs} reference={data.settings.goals} />
             <span className="muted">
-              {claim.method.startsWith('hosted')
-                ? 'Hosted RAG extraction'
-                : 'Keyword baseline extraction'}
+              {claim.method.startsWith('local')
+                ? 'Local AI extraction'
+                : claim.method.startsWith('hosted')
+                  ? 'Hosted RAG extraction'
+                  : 'Keyword baseline extraction'}
             </span>
             <h2>{claim.text}</h2>
             <p>{claim.rationale}</p>

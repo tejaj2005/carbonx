@@ -303,13 +303,13 @@ function UploadReport({ onClose }: { onClose: () => void }) {
         <div className="callout info">
           <b>
             {data.settings.providers.hostedAI?.configured
-              ? 'Hosted AI processing enabled'
+              ? 'AI processing configured'
               : 'Keyword baseline processing'}
           </b>
           <p>
             {data.settings.providers.hostedAI?.configured
               ? 'Extracted passages will be sent to the configured AI provider for embeddings and claim mapping.'
-              : 'No hosted AI is configured. The local keyword baseline will extract candidate claims and suggest SDGs.'}
+              : 'No AI processor is configured. The local keyword baseline will extract candidate claims and suggest SDGs.'}
           </p>
         </div>
         <button className="button primary full" disabled={busy}>
@@ -500,8 +500,10 @@ export function Reports() {
                       <small className="block muted">
                         {r.mode === 'pending'
                           ? 'Processing'
-                          : r.mode === 'hosted-rag'
-                            ? 'Hosted RAG'
+                          : r.mode === 'hosted-rag' || r.mode === 'local-rag'
+                            ? r.mode === 'local-rag'
+                              ? 'Local AI'
+                              : 'Hosted RAG'
                             : 'Keyword baseline'}
                       </small>
                     </td>

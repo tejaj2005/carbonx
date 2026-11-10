@@ -63,32 +63,46 @@ No real company reports, production credentials, pre-claimed benchmark results o
 | Workspaces            | Company registration, session login, owner/reviewer/analyst roles, team creation, password changes and company-scoped access   |
 | Ingestion             | PDF text and tables, physical page references, local English OCR for scanned pages, UTF-8 text and versioned reprocessing      |
 | Retrieval             | 500-token passages with 80-token overlap; lexical search; optional persisted embeddings and hybrid retrieval                   |
-| Claims and SDGs       | Source-quoted extraction, 17-goal reference, explicit processing mode, optional structured hosted model extraction             |
+| Claims and SDGs       | Source-quoted extraction, 17-goal reference, explicit processing mode, optional structured local AI extraction                 |
 | Historical evidence   | Canonical units, metric/facility/year/boundary matching, CSV preview and atomic import, scoped year-over-year graphs           |
 | Review                | Supported / needs review / insufficient evidence, reasons, comparison arithmetic, independent human decisions and activity log |
 | Environmental context | Open-Meteo weather and air quality; Earth Search Sentinel-2 L2A imagery, selected-site NDVI and NDWI                           |
-| Action plans          | Deterministic gap recommendations; optional cited hosted AI action planning; action status tracking                            |
+| Action plans          | Deterministic gap recommendations; optional cited local AI action planning; action status tracking                             |
 | Evaluation            | Human gold labels, development/test split, measured precision/recall/F1, status confusion matrix and lexical Recall@5          |
 | Export                | Protected CSV/PDF/JSON exports with the actual recorded findings and evidence                                                  |
 
 A supported claim means consistency with the supplied historical evidence and implemented rules. It is not an independent assurance, fraud verdict, SDG certification or carbon-credit validation.
 
-## Optional hosted AI
+## Free local AI
 
-Copy .env.example to .env and configure these variables on the server:
+The default AI provider is a local Ollama service. It needs an installed local text model; local embeddings are optional. No paid API key or external AI subscription is required. No model has been installed or live inference verified on this machine yet.
+
+Copy .env.example to .env, choose model names already installed in Ollama, and restart CarbonX:
 
 ```dotenv
-ENABLE_HOSTED_AI=true
-OPENAI_API_KEY=
-OPENAI_MODEL=
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+AI_PROVIDER=ollama
+OLLAMA_MODEL=
+OLLAMA_EMBEDDING_MODEL=
+ALLOW_PAID_AI=false
 ```
 
-Supply a fresh provider key and a model supporting Responses structured outputs. Restart the server. Keys are never entered in the browser or committed to Git.
+The adapter connects only to http://127.0.0.1:11434 and supports structured extraction, cited answers, action plans and advisory explanations. Explicitly cloud-labelled model names are rejected. Model installation, licence terms, local memory and runtime availability must be checked for the chosen model.
 
-Without this configuration, the application works using an explicitly labelled keyword extraction/mapping baseline and lexical retrieval. A failed hosted extraction records a warning and falls back to the baseline. Invalid source quotes are rejected. Configuration status alone is not proof of a successful model request.
+Until AI is configured and successfully exercised, the website uses a labelled keyword/rules baseline and lexical search. Configuration alone does not prove successful inference. Model output cannot change a threshold, reviewer decision or licence automatically. Legacy hosted-provider support is disabled by default behind a separate paid-provider opt-in; it is not used for this free-tools pilot.
 
-Hosted processing sends extracted report passages and selected report metadata to the configured provider. Public environmental requests send the selected facility coordinates/date windows to their named providers. Review provider terms and your organisation's data policy for the intended deployment.
+## India metropolitan monitoring
+
+Open http://127.0.0.1:8765/#india for Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune and Ahmedabad. The server polls real Open-Meteo/CAMS model outputs and weather every 30 minutes, persists the last good response and exposes timestamps, provider errors and stale states. The display reads the cache every 30 seconds.
+
+India atmospheric values are regional model estimates at approximately 45 km resolution, with 3-hour native output and 12-hour model updates. They are not local live sensors. Completed 24-hour model means can generate regional advisories; they cannot attribute a company's emissions or establish a legal breach.
+
+A CPCB/data.gov.in station-summary adapter is implemented. Add a free personal DATA_GOV_IN_API_KEY in .env and restart to validate live access. No key was supplied, so measured station readings are not claimed. Units and averaging periods remain unknown unless supplied by the provider; no compliance comparison is made from unknown metadata.
+
+Government Oversight can configure facility-specific operational thresholds with a unit, reporting window, maximum age, measurement basis and reference. Company users can submit observed emissions periods. Matching valid observations produce durable, deduplicated in-app notifications for the company and authorised government users. Missing, stale or mismatched evidence is not assessed. There is no automatic licence suspension.
+
+Continuous industrial OCEMS/CEMS data is not connected. Current factory observations are company-reported, not independently measured telemetry. Email and SMS delivery are not configured. Background work requires the server to remain running.
+
+Open-Meteo's free endpoint is for non-commercial use under its provider terms. The presentation/research pilot uses that endpoint; commercial deployment requires a separate terms review. See [India integrations and production readiness](docs/production-readiness.md) for verified capabilities and remaining inputs.
 
 ## Configuration
 

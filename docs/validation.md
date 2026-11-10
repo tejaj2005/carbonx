@@ -4,7 +4,7 @@ Performed locally on 10 November 2026. These are implementation checks, not a pr
 
 ## Automated checks
 
-- npm test: 38 checks passed, zero failures.
+- npm test: 53 checks passed, zero failures.
 - npm run build: TypeScript checking and Vite production build passed.
 - Production frontend is split into route and chart chunks; no oversized-chunk warning in the final build.
 - npm audit --omit=dev: zero reported vulnerabilities at the time checked. Advisory databases change over time.
@@ -53,7 +53,7 @@ The separate credential-audit document records ZIP-to-Git equality, all eight re
 
 ## Not live-verified
 
-- Hosted OpenAI extraction, embeddings, grounded answering and action-plan generation: implemented but not exercised against a provider because no new key/model configuration was supplied.
+- Free local Ollama extraction, embeddings, grounded answering, action plans and explanations: adapter contracts tested; no running local service/model inference was verified. Legacy paid AI remains disabled by default.
 - Hosted-model generalisation, RAG answer faithfulness or achieved research F1/recall: not measured.
 - A real-company evaluation corpus, independent gold annotation or the reference deck's dataset totals: not supplied.
 - Public production deployment, multi-instance scaling, enterprise SSO, account-recovery delivery, malware scanning and load/security testing: not completed by these local checks.
@@ -63,7 +63,7 @@ For the remaining deployment and ingestion limits, see architecture.md and the r
 
 ## Portal and presentation extension
 
-The final automated suite passed 38 checks. New coverage verifies company registration cannot grant government access; anonymous public reads; separate government/company login enforcement; protected government routes; submission/review handoff; transactional licence actions; stale-status rejection; immediate suspension restrictions; opt-in publication and private-field exclusion; canonical reading units; company-user creation and disable/restore behaviour; revocation of government capability on existing sessions; exact-company government demo isolation; same-company demo role switching with rejection of real accounts; and provisioning without interrupting active jobs.
+The final automated suite passed 53 checks. New coverage verifies company registration cannot grant government access; anonymous public reads; separate government/company login enforcement; protected government routes; submission/review handoff; transactional licence actions; stale-status rejection; immediate suspension restrictions; opt-in publication and private-field exclusion; canonical reading units; company-user creation and disable/restore behaviour; revocation of government capability on existing sessions; exact-company government demo isolation; same-company demo role switching with rejection of real accounts; and provisioning without interrupting active jobs.
 
 Browser verification used the running production build at 1366 by 900 and the default approximately 396 by 604 narrow viewport. It exercised the government overview, registry, protected evidence view, licence suspension and restoration, public licence status, follow-up decision, oversight case creation and user-creation form.
 
@@ -76,3 +76,23 @@ Mobile navigation, scrollable lower company links, responsive public/registry vi
 Only synthetic presentation records were changed during UI checks. The demo licence was restored to Active. No external government licence, government service, n8n workspace or real company account was changed. A real production government administrator has not been provisioned; use the protected setup command.
 
 The public page remains a local anonymous route. No internet-facing production deployment or continuous meter integration was completed by this extension.
+
+## India monitoring and readiness audit
+
+Final suite: 53 passed, zero failed. Production build, TypeScript checks and production dependency audit passed. npm audit --omit=dev reported zero known vulnerabilities at this check.
+
+New coverage verifies eight-city model provenance; missing station credentials; IST provider timestamp conversion; complete 24-hour past-window coverage; no invented station units; provider failure retention; persistent due-time scheduling; company/facility/unit/basis/period/quality/age matching; government-only threshold configuration; forced company-reported provenance; durable deduplicated company and government notifications; notification read isolation; local Ollama request contracts and rejection of explicitly cloud-labelled models.
+
+Additional regressions corrected combined percentage-plus-quantity assertions, Indian fiscal-year ending-year extraction, renewable shares over 100%, stale reviewer decisions after evidence changes, and recommendation provenance after deterministic refresh. Existing stored claims are revalidated at startup.
+
+The running production server returned HTTP 200 with SQLite ready after its owned idle process was restarted. Actual Open-Meteo weather and CAMS global AQ requests succeeded for all eight metropolitan cities. The checked atmospheric output was valid at 13:30 IST on 10 November 2026 and fetched at approximately 14:01 IST. No station key was present, so all eight official station sources correctly remained not_configured. Neither continuous factory telemetry nor local AI inference was claimed.
+
+Browser checks exercised the anonymous India observatory and Delhi detail, source/resolution labels, model-window coverage, missing-key state, company monitoring page, government threshold creation, company observation submission, notification read state and government inbox handoff. Threshold pause and re-enable both worked. A browser-observed defect was fixed: synthetic role switching now reuses each role's existing identity so its inbox survives switching back.
+
+Only a synthetic demonstration facility was used for the threshold/observation UI test: 60 tCO2e against a synthetic 50 tCO2e one-hour policy. The company source and policy text explicitly identify the test. It is not a real company breach or a statutory threshold. No external notification or licence action was sent.
+
+Responsive inspection covered desktop and 390 by 844 mobile override. The mobile India view had 375px document width and 375px viewport width, without horizontal overflow. The final updated build returned no new browser console errors in the checked interval. One earlier stale lazy-module error occurred when the old page remained open across a build; reloading loaded the current assets successfully.
+
+The viewport override was reset. The India observatory tab remains open as the deliverable, and the local server remains running. The screenshot artifact is a visual check, not proof of independent sensor accuracy or production deployment.
+
+See production-readiness.md for missing credentials/data and deployment requirements. Full production readiness is not claimed.

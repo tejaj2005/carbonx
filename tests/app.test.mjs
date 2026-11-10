@@ -249,6 +249,53 @@ test('full company workflow and isolation', async (t) => {
       200,
     );
   });
+  await t.test(
+    'evidence changes invalidate decisions and reopen completed recommendations with honest provenance',
+    async () => {
+      const c = claims.find((x) => x.metric === 'water_consumption');
+      const before = system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id).n;
+      assert.equal(
+        (
+          await owner
+            .post('/api/claims/' + c.id + '/review')
+            .set('X-CSRF-Token', csrf)
+            .send({
+              decision: 'accepted',
+              rationale: 'The current source and comparison have been checked for this test.',
+            })
+        ).status,
+        200,
+      );
+      system.store.run(
+        'UPDATE recommendations SET method=?,status=?,title=? WHERE claim_id=?',
+        'hosted:test-model',
+        'done',
+        'Previously reviewed action',
+        c.id,
+      );
+      system.work.refresh(c.company_id);
+      assert.equal(
+        system.store.get('SELECT method FROM recommendations WHERE claim_id=?', c.id).method,
+        'hosted:test-model',
+      );
+      system.store.run(
+        'UPDATE observations SET value=900,normalized_value=900 WHERE company_id=? AND metric=? AND year=2024',
+        c.company_id,
+        'water_consumption',
+      );
+      system.work.refresh(c.company_id);
+      const updated = system.store.get('SELECT * FROM claims WHERE id=?', c.id),
+        action = system.store.get('SELECT * FROM recommendations WHERE claim_id=?', c.id);
+      assert.equal(updated.status, 'needs_review');
+      assert.equal(updated.review_state, 'unreviewed');
+      assert.equal(action.method, 'rules');
+      assert.equal(action.status, 'open');
+      assert.equal(
+        system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id).n,
+        before + 1,
+      );
+    },
+  );
   await t.test('PDF extraction preserves physical page references', async () => {
     const file = path.join(dataDir, 'parser-fixture.pdf');
     await new Promise((resolve, reject) => {

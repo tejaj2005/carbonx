@@ -162,3 +162,18 @@ test('superscript cubic metres and leading-space CSV formulas are handled', () =
   assert.equal(parseClaim('In FY2024 water consumption reached 800 m³.').value, 800);
   assert.equal(csvCell('  =1+1'), '"\'  =1+1"');
 });
+
+test('combined percentage and quantity assertions must both match', () => {
+  assert.equal(verifyClaim({ ...c, value: 999, unit: 'kL' }, history).status, 'needs_review');
+  assert.equal(verifyClaim({ ...c, value: 800, unit: 'kL' }, history).status, 'supported');
+});
+test('Indian fiscal periods use the ending year and shares cannot exceed 100 percent', () => {
+  const p = parseClaim(
+    'In FY2023-24 water consumption declined by 20% compared with FY2022-23, reaching 800 kL.',
+    { year: 2024 },
+  );
+  assert.equal(p.year, 2024);
+  assert.equal(p.baseline_year, 2023);
+  assert.equal(normalize(150, '%', 'renewable_share'), null);
+  assert.deepEqual(normalize(100, '%', 'renewable_share'), { value: 100, unit: '%' });
+});

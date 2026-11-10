@@ -376,6 +376,7 @@ test('government, company and public boundaries', async (t) => {
       let r = await demo.post('/api/auth/demo').send({ portal: 'company' });
       assert.equal(r.status, 201);
       const id = r.body.user.companyId,
+        ownerId = r.body.user.id,
         token = r.body.csrf;
       await waitIdle();
       r = await demo
@@ -385,7 +386,19 @@ test('government, company and public boundaries', async (t) => {
       assert.equal(r.status, 200);
       assert.equal(r.body.user.portal, 'government');
       assert.equal(r.body.user.companyId, id);
-      const governmentToken = r.body.csrf;
+      const governmentToken = r.body.csrf,
+        governmentId = r.body.user.id;
+      system.store.insert('notifications', {
+        id: uuid('notice_'),
+        user_id: governmentId,
+        event_key: 'test-demo-handoff',
+        alert_id: null,
+        title: 'Retained government notification',
+        message: 'Synthetic test only',
+        kind: 'workspace_event',
+        created_at: now(),
+        read_at: null,
+      });
       assert.equal((await demo.get('/api/government/overview')).body.companies[0].id, id);
       r = await demo
         .post('/api/auth/demo-switch')
@@ -394,7 +407,19 @@ test('government, company and public boundaries', async (t) => {
       assert.equal(r.status, 200);
       assert.equal(r.body.user.portal, 'company');
       assert.equal(r.body.user.companyId, id);
+      assert.equal(r.body.user.id, ownerId);
       assert.equal((await demo.get('/api/government/overview')).status, 403);
+      r = await demo
+        .post('/api/auth/demo-switch')
+        .set('X-CSRF-Token', r.body.csrf)
+        .send({ portal: 'government' });
+      assert.equal(r.status, 200);
+      assert.equal(r.body.user.id, governmentId);
+      assert.ok(
+        (await demo.get('/api/monitoring')).body.notifications.some(
+          (n) => n.event_key === 'test-demo-handoff',
+        ),
+      );
     },
   );
   await t.test('revoking authority takes effect on existing sessions', async () => {

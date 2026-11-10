@@ -101,3 +101,17 @@ Recent reading submission validates compatible canonical units, company/facility
 Real government admins are provisioned interactively through scripts/create-admin.mjs. This database connection disables startup job recovery. A government demo is restricted to one exact synthetic company. Its role switch creates a scoped demo perspective and rotates the session within that company; real accounts are rejected. Generation checks discard stale workspace responses after account switches.
 
 Presentation effects are SVG/CSS illustrations with reduced-motion support. Air-quality slider values and satellite scanning animations are labelled simulations and do not change evidence or administrative decisions.
+
+## India monitoring extension
+
+server/india.mjs defines the eight-city public coordinate inventory, Open-Meteo/CAMS model adapter, optional CPCB/data.gov.in station adapter, IST timestamp parsing, complete past 24-hour model windows and strict operational threshold matching.
+
+server/monitoring.mjs persists metro_cache, city_watch, emission_rules, emission_samples, monitoring_alerts, monitoring_state, notifications and notification_audit_checkpoint in SQLite. Poll due-times and three-minute leases survive restart. A single process runs two city requests concurrently; this is not a distributed durable job service. Last successful data survives provider failures. No unavailable data is replaced by fixtures.
+
+Public GET /api/public/india projects city context only. Authenticated GET /api/monitoring scopes facility data, rules, alerts and inboxes by company/authority. Government demo access remains confined to its exact synthetic company. Inboxes belong to individual users, including read state. Synthetic role switching reuses existing identities so presentation handoffs preserve their inboxes.
+
+Government configures operational thresholds; companies submit observations forced to source_kind company_reported. Matching requires company/facility, metric, unit, measurement basis, reporting duration, age and quality. Deterministic assessments cannot change licence status. Repeated above-threshold readings update an ongoing alert instead of spamming notifications. Invalid or stale evidence never resolves a breach. Regional model advisories have legalFinding=false and are distinct from reported facility alerts.
+
+Audit events for claim submission, review, licence updates and follow-up actions generate deduplicated in-app notifications. Email and SMS delivery remain absent. The server must be running for background processing.
+
+The free AI default is a fixed loopback Ollama endpoint with structured JSON and optional embeddings. No model is bundled and no live inference is verified. Missing AI uses explicit rules/lexical fallbacks. Legacy paid hosted AI is off unless separately opted in. AI explanations are advisory and cannot execute actions.

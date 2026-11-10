@@ -19,7 +19,11 @@ import {
 } from 'lucide-react';
 import { api, mutate } from './api';
 import { WorkspaceProvider, useWorkspace } from './context';
-import { Brand, Spinner, Modal } from './components';
+import { Brand, Spinner, Modal, NotificationBell } from './components';
+const MonitoringPage = lazy(() =>
+  import('./Monitoring').then((m) => ({ default: m.MonitoringPage })),
+);
+const PublicIndia = lazy(() => import('./Monitoring').then((m) => ({ default: m.PublicIndia })));
 import { PublicPortal, PortalLogin } from './Portals';
 import { ReviewJourney, ReviewExperience } from './VisualJourney';
 const GovernmentPortal = lazy(() =>
@@ -55,6 +59,7 @@ const navigation = [
   ['evidence', 'Evidence explorer', BookOpen],
   ['history', 'Historical data', Database],
   ['environment', 'Environment', Earth],
+  ['monitoring', 'Monitoring & notifications', Activity],
   ['recommendations', 'Action plans', ClipboardCheck],
   ['evaluations', 'Evaluation', FlaskConical],
   ['audit', 'Activity log', Activity],
@@ -83,6 +88,12 @@ function Shell() {
   }
   if (!ready) return <Spinner />;
   if (view === 'public') return <PublicPortal />;
+  if (view === 'india')
+    return (
+      <Suspense fallback={<Spinner />}>
+        <PublicIndia />
+      </Suspense>
+    );
   if (view === 'government-login' || view === 'company-login')
     return (
       <PortalLogin key={view} portal={view === 'government-login' ? 'government' : 'company'} />
@@ -102,6 +113,7 @@ function Shell() {
     evidence: <Evidence />,
     history: <History />,
     environment: <Environment />,
+    monitoring: <MonitoringPage />,
     recommendations: <Recommendations />,
     evaluations: <Evaluation />,
     audit: <Audit />,
@@ -185,6 +197,7 @@ function Shell() {
             Workspace <span>/</span> <strong>{current}</strong>
           </span>
           <div className="topbar-actions">
+            <NotificationBell />
             <button
               className="button secondary walkthrough-button"
               onClick={() => setWalkthrough(true)}
@@ -261,3 +274,5 @@ export default function App() {
     </WorkspaceProvider>
   );
 }
+
+import './monitoring.css';

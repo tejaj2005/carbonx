@@ -72,11 +72,43 @@ export function validateCitations(items, chunks) {
   });
 }
 export function aiTools(config) {
-  const client = config.aiEnabled
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 60000, maxRetries: 2 })
-    : null;
+  const local = config.aiEnabled && config.aiProvider === 'ollama';
+  const localPost = async (path, body) => {
+    for (const name of [body.model])
+      if (!name || /cloud/i.test(name)) throw Error('Choose an explicitly local Ollama model.');
+    const response = await fetch('http://127.0.0.1:11434' + path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120000),
+      redirect: 'error',
+    });
+    if (!response.ok)
+      throw Error(
+        'Local Ollama returned HTTP ' +
+          response.status +
+          '. Confirm the local service and installed model.',
+      );
+    return response.json();
+  };
+  const client =
+    config.aiEnabled && !local && process.env.ALLOW_PAID_AI === 'true'
+      ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 60000, maxRetries: 2 })
+      : null;
   async function structured(schema, name, instructions, input) {
-    if (!client) throw new Error('Hosted AI is not configured.');
+    if (local) {
+      const result = await localPost('/api/generate', {
+        model: config.aiModel,
+        system: instructions,
+        prompt: input + '\nReturn JSON matching this schema: ' + JSON.stringify(schema),
+        format: schema,
+        stream: false,
+        options: { temperature: 0 },
+      });
+      if (!result.response) throw Error('The local model returned no structured output.');
+      return { data: JSON.parse(result.response), model: result.model || config.aiModel };
+    }
+    if (!client) throw new Error('AI is not configured. Choose a free local Ollama model.');
     const result = await client.responses.create({
       model: config.aiModel,
       store: false,
@@ -89,6 +121,18 @@ export function aiTools(config) {
     return { data: JSON.parse(result.output_text), model: result.model };
   }
   async function embed(texts) {
+    if (local) {
+      if (!config.embeddingModel)
+        throw Error(
+          'A local embedding model is not configured. Lexical retrieval remains available.',
+        );
+      const result = await localPost('/api/embed', {
+        model: config.embeddingModel,
+        input: texts,
+        truncate: false,
+      });
+      return result.embeddings;
+    }
     if (!client) return null;
     const result = await client.embeddings.create({ model: config.embeddingModel, input: texts });
     return result.data.sort((a, b) => a.index - b.index).map((x) => x.embedding);
@@ -125,7 +169,7 @@ export function aiTools(config) {
           facility_id: meta.facility_id,
           sdgs: [...new Set(item.sdgs)],
           rationale: item.rationale,
-          method: 'hosted-rag:' + response.model,
+          method: (local ? 'local-rag:' : 'hosted-rag:') + response.model,
         });
     }
     if (rejected && !result.length) throw new Error('No model proposal had a valid source quote.');
@@ -163,5 +207,12 @@ export function aiTools(config) {
       throw new Error('The answer contained no supporting evidence citations.');
     return { ...response.data, model: response.model };
   }
-  return { structured, embed, extract, answer, available: Boolean(client) };
+  return {
+    structured,
+    embed,
+    extract,
+    answer,
+    available: local || Boolean(client),
+    provider: local ? 'ollama' : client ? 'openai' : 'none',
+  };
 }

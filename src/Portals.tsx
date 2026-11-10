@@ -189,6 +189,7 @@ export function PublicPortal() {
           <Brand />
         </a>
         <nav>
+          <a href="#india">India observatory</a>
           <a href="#public" className="selected">
             Public transparency
           </a>

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { X, Leaf, FileSearch, LoaderCircle, ArrowUpRight } from 'lucide-react';
 import { label, type Item } from './api';
+import { useWorkspace } from './context';
+import { Bell } from 'lucide-react';
 export function Brand() {
   return (
     <span className="brand">
@@ -240,5 +242,20 @@ export function Jobs({ jobs }: { jobs: Item[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+export function NotificationBell() {
+  const { data, user } = useWorkspace();
+  const count = data.monitoring.notifications.filter((n: Item) => !n.read_at).length;
+  return (
+    <a
+      className="notification-bell icon-button"
+      href={user?.portal === 'government' ? '#gov-monitoring' : '#monitoring'}
+      aria-label={'Notifications, ' + count + ' unread'}
+    >
+      <Bell size={18} />
+      {count > 0 && <b>{count > 99 ? '99+' : count}</b>}
+    </a>
   );
 }

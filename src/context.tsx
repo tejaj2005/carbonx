@@ -18,6 +18,16 @@ const blank = {
   dashboard: { stats: {}, coverage: [], observations: [], recentReports: [], recentActivity: [] },
   government: { companies: [], actions: [], submissions: [], users: [], audit: [], stats: {} },
   company: { registry: { licence_status: 'pending' }, submissions: [], actions: [], readings: [] },
+  monitoring: {
+    cities: [],
+    rules: [],
+    alerts: [],
+    notifications: [],
+    watch: [],
+    facilities: [],
+    ai: {},
+    notificationChannels: {},
+  },
   reports: [],
   claims: [],
   facilities: [],
@@ -59,8 +69,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const requestGeneration = generation.current;
     try {
       if (user.portal === 'government') {
-        const government = await api('/government/overview');
-        if (requestGeneration === generation.current) setData({ ...blank, government });
+        const [government, monitoring] = await Promise.all([
+          api('/government/overview'),
+          api('/monitoring'),
+        ]);
+        if (requestGeneration === generation.current) setData({ ...blank, government, monitoring });
         return;
       }
       const keys = [
@@ -74,6 +87,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         'environment',
         'evaluations',
         'settings',
+        'monitoring',
         'company/overview',
       ];
       if (user.role !== 'analyst') keys.push('audit');

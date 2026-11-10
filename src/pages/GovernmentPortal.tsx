@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { api, mutate, date, label, number, type Item } from '../api';
 import { useWorkspace } from '../context';
-import { Brand, Heading, Panel, Modal, Field, Badge, Empty } from '../components';
+import { Brand, Heading, Panel, Modal, Field, Badge, Empty, NotificationBell } from '../components';
+import { MonitoringPage } from '../Monitoring';
 import { ReviewJourney, ReviewExperience } from '../VisualJourney';
 const nav = [
   ['government', 'Overview', LayoutDashboard],
@@ -33,7 +34,9 @@ const nav = [
   ['gov-actions', 'Cases & actions', ClipboardList],
   ['gov-users', 'User management', Users],
   ['gov-audit', 'Activity log', Activity],
+  ['gov-monitoring', 'Monitoring & notifications', Activity],
 ] as const;
+const BellIcon = Activity;
 type Action = { kind: string; item?: Item };
 function AdminForm({ action, close }: { action: Action; close: () => void }) {
   const { data, refresh, toast } = useWorkspace(),
@@ -519,6 +522,7 @@ export function GovernmentPortal({ view }: { view: string }) {
             <strong>{current}</strong>
           </span>
           <div className="topbar-actions">
+            <NotificationBell />
             <button
               className="button secondary walkthrough-button"
               onClick={() => setWalkthrough(true)}
@@ -550,9 +554,14 @@ export function GovernmentPortal({ view }: { view: string }) {
               </button>
             </div>
           )}
-          {!['gov-registry', 'gov-submissions', 'gov-actions', 'gov-users', 'gov-audit'].includes(
-            view,
-          ) && (
+          {![
+            'gov-registry',
+            'gov-submissions',
+            'gov-actions',
+            'gov-users',
+            'gov-audit',
+            'gov-monitoring',
+          ].includes(view) && (
             <>
               <Heading
                 eyebrow="GOVERNMENT OVERSIGHT"
@@ -633,6 +642,7 @@ export function GovernmentPortal({ view }: { view: string }) {
               </div>
             </>
           )}
+          {view === 'gov-monitoring' && <MonitoringPage />}
           {view === 'gov-registry' && (
             <>
               <Heading

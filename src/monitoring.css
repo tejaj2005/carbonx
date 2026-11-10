@@ -1,0 +1,479 @@
+.notification-bell {
+  position: relative;
+  overflow: visible;
+}
+.notification-bell b {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  min-width: 15px;
+  height: 15px;
+  border-radius: 8px;
+  background: #b86543;
+  color: #fff;
+  font-size: 8px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+}
+.monitoring-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 19px 22px;
+  border: 1px solid #d9e4ca;
+  border-radius: 11px;
+  background: #eef4e4;
+  margin-bottom: 25px;
+}
+.monitoring-disclaimer > svg {
+  flex: none;
+  margin-top: 3px;
+  color: #7c945d;
+}
+.monitoring-disclaimer p {
+  font-size: 12px;
+  color: #6d8258;
+  line-height: 1.8;
+  margin: 0;
+}
+.monitoring-disclaimer b {
+  color: #466432;
+}
+.metro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 25px;
+}
+.metro-card {
+  background: #fff;
+  border: 1px solid #e0e8d8;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: left;
+  color: #264d35;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  min-width: 0;
+}
+.metro-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px #42623912;
+}
+.metro-card .row-between > span:first-child {
+  font-size: 13px;
+  font-weight: 650;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.metro-card > small {
+  font-size: 10px;
+  color: #91a07f;
+  display: block;
+  margin: 6px 0 18px;
+}
+.metro-card .badge {
+  font-size: 8px;
+  padding: 3px 6px;
+}
+.metro-reading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 14px 0 5px;
+}
+.metro-reading > svg {
+  color: #93ad6d;
+  flex: none;
+}
+.metro-reading > strong {
+  font-size: 33px;
+  letter-spacing: -1px;
+  font-weight: 600;
+}
+.metro-reading small {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.metro-card > b {
+  font-size: 9px;
+  font-weight: 500;
+  color: #859776;
+}
+.metro-mini {
+  display: flex;
+  gap: 15px;
+  margin: 20px 0 14px;
+  font-size: 10px;
+  color: #8e9e7e;
+}
+.metro-mini > span {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.metro-mini b {
+  color: #5b7a43;
+  font-weight: 500;
+}
+.metro-source-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #94a287;
+  font-size: 8px;
+}
+.metro-card footer {
+  border-top: 1px solid #edf1e6;
+  margin-top: 14px;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #8b9c7a;
+}
+.metro-error {
+  display: block;
+  font-size: 9px;
+  color: #ac8650;
+  margin-top: 8px;
+}
+.metro-stale {
+  border-color: #e9d5b5;
+}
+.metro-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 16px;
+}
+.metro-detail-metrics > div {
+  background: #f4f8ee;
+  border-radius: 11px;
+  padding: 18px;
+}
+.metro-detail-metrics span {
+  font-size: 11px;
+  color: #8b9a79;
+}
+.metro-detail-metrics strong {
+  display: block;
+  font-size: 29px;
+  color: #496c37;
+  margin-top: 7px;
+}
+.metro-detail-metrics small {
+  font-size: 11px;
+  font-weight: 400;
+}
+.monitor-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 10px 0;
+}
+.monitor-health-grid > div {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.monitor-health-grid svg {
+  color: #8da66c;
+  flex: none;
+  margin-top: 3px;
+}
+.monitor-health-grid b {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.monitor-health-grid small {
+  font-size: 10px;
+  color: #94a287;
+  display: block;
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.notification-list article {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 21px 0;
+  border-bottom: 1px solid #eaf0df;
+}
+.notification-list article:first-child {
+  padding-top: 4px;
+}
+.notification-list .notification-icon {
+  background: #eff4e5;
+  color: #829d5a;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.notification-list article > div {
+  flex: 1;
+}
+.notification-list h3 {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.notification-list p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #819470;
+  margin-bottom: 7px;
+}
+.notification-list small {
+  font-size: 9px;
+  color: #a1ad95;
+}
+.notification-list article.read {
+  opacity: 0.65;
+}
+.threshold-list article {
+  padding: 20px 0;
+  border-bottom: 1px solid #e9efde;
+}
+.threshold-list article:first-child {
+  padding-top: 3px;
+}
+.threshold-list h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.threshold-list p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 14px 0 7px;
+}
+.threshold-list small {
+  display: block;
+  font-size: 10px;
+  color: #8d9e7a;
+  line-height: 1.8;
+}
+.threshold-list .text-link {
+  margin-top: 13px;
+  font-size: 11px;
+}
+.city-watch-options {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 10px 0 25px;
+}
+.city-watch-options label {
+  font-size: 12px;
+}
+.badge-not_assessed,
+.badge-waiting {
+  background: #f3efe0;
+  color: #a48e4d;
+}
+.badge-above_threshold {
+  background: #fae9e0;
+  color: #b16f42;
+}
+.badge-within_configured_threshold,
+.badge-recent {
+  background: #edf4e3;
+  color: #76954c;
+}
+.badge-stale {
+  background: #f8eddc;
+  color: #a58953;
+}
+.india-public-content {
+  max-width: 1440px;
+  padding: 60px 5% 40px;
+  margin: auto;
+}
+.india-public-content .page-heading h1 {
+  font-size: 38px;
+  letter-spacing: -1px;
+}
+.india-public-content .page-heading p {
+  font-size: 13px;
+  max-width: 790px;
+  line-height: 1.85;
+}
+.india-source-strip {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+  border-top: 1px solid #e1e9d8;
+  border-bottom: 1px solid #e1e9d8;
+  padding: 18px 0;
+  margin: 25px 0;
+}
+.india-source-strip span {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 11px;
+  color: #82956c;
+}
+.india-source-strip svg {
+  color: #8ca66b;
+}
+.india-attribution {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 20px 0;
+  color: #8b9d78;
+  font-size: 10px;
+}
+.india-attribution p {
+  width: 100%;
+  margin: 0;
+}
+.india-attribution a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: underline;
+}
+.india-public-content > .panel > p {
+  font-size: 12px;
+  color: #7d916b;
+  line-height: 1.85;
+}
+@media (max-width: 1200px) {
+  .metro-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .metro-card {
+    padding: 17px;
+  }
+  .metro-reading > strong {
+    font-size: 30px;
+  }
+}
+@media (max-width: 850px) {
+  .metro-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .monitor-health-grid {
+    gap: 20px;
+  }
+  .india-public-content {
+    padding-top: 35px;
+  }
+  .india-public-content .page-heading h1 {
+    font-size: 30px;
+  }
+  .metro-detail-metrics {
+    gap: 10px;
+  }
+  .metro-detail-metrics > div {
+    padding: 13px;
+  }
+  .metro-detail-metrics strong {
+    font-size: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .metro-card {
+    padding: 16px 14px;
+  }
+  .metro-card .row-between > span:first-child {
+    font-size: 12px;
+  }
+  .metro-reading {
+    gap: 7px;
+  }
+  .metro-reading > strong {
+    font-size: 27px;
+  }
+  .metro-reading small {
+    font-size: 9px;
+  }
+  .metro-mini {
+    font-size: 9px;
+    gap: 12px;
+  }
+  .metro-source-time {
+    font-size: 7px;
+  }
+  .metro-card footer {
+    font-size: 7px;
+  }
+  .metro-grid {
+    gap: 12px;
+  }
+  .monitoring-disclaimer {
+    padding: 15px;
+    gap: 10px;
+  }
+  .monitoring-disclaimer p {
+    font-size: 10px;
+  }
+  .monitor-health-grid {
+    grid-template-columns: 1fr;
+  }
+  .metro-detail-metrics {
+    grid-template-columns: 1fr;
+  }
+  .metro-detail-metrics > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .metro-detail-metrics strong {
+    margin: 0;
+  }
+  .notification-list article {
+    gap: 10px;
+  }
+  .notification-list h3 {
+    font-size: 12px;
+  }
+  .notification-list p {
+    font-size: 10px;
+  }
+  .notification-list .notification-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .india-source-strip {
+    gap: 14px;
+  }
+  .india-source-strip span {
+    font-size: 9px;
+  }
+  .india-public-content .page-heading h1 {
+    font-size: 29px;
+  }
+  .threshold-list .row-between {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .threshold-list h3 {
+    font-size: 13px;
+  }
+  .threshold-list p {
+    font-size: 11px;
+  }
+  .city-watch-options {
+    gap: 15px;
+  }
+  .city-watch-options label {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metro-card {
+    transition: none !important;
+  }
+}
