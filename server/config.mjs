@@ -10,10 +10,17 @@ export function readConfig(env = process.env) {
     authBackend: env.AUTH_BACKEND || 'local',
     storageBackend: env.STORAGE_BACKEND || 'local',
     port: Number(env.PORT || 8765),
-    host: env.HOST || '127.0.0.1',
+    host:
+      env.HOST ||
+      (env.NODE_ENV === 'production' || process.argv.includes('--production')
+        ? '0.0.0.0'
+        : '127.0.0.1'),
     dataDir: path.resolve(env.DATA_DIR || '.data'),
     maxUpload: Number(env.MAX_UPLOAD_MB || 25) * 1024 * 1024,
-    secureCookies: env.COOKIE_SECURE === 'true',
+    secureCookies:
+      env.COOKIE_SECURE === 'true' ||
+      env.NODE_ENV === 'production' ||
+      process.argv.includes('--production'),
     allowDemo: env.ALLOW_DEMO !== 'false',
     allowRegistration: env.ALLOW_REGISTRATION !== 'false',
     aiProvider,

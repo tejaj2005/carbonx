@@ -105,10 +105,10 @@ See [.env.example](.env.example). Main options:
 
 | Variable           | Default          | Purpose                                                 |
 | ------------------ | ---------------- | ------------------------------------------------------- |
-| HOST / PORT        | 127.0.0.1 / 8765 | Local listener                                          |
+| HOST / PORT        | 127.0.0.1 / 8765 | Local listener; production defaults to 0.0.0.0 and platform PORT |
 | DATA_DIR           | .data            | SQLite, original reports and local OCR cache            |
-| COOKIE_SECURE      | false            | Set true behind HTTPS                                   |
-| TRUST_PROXY        | unset            | Set true only behind a trusted reverse proxy            |
+| COOKIE_SECURE      | false            | Secure cookies are enabled automatically in production  |
+| TRUST_PROXY        | unset            | Production trusts one hosting proxy for HTTPS/origin checks |
 | ALLOW_REGISTRATION | true             | Allow new company accounts                              |
 | ALLOW_DEMO         | true             | Allow synthetic example workspaces                      |
 | MAX_UPLOAD_MB      | 25               | Upload size limit                                       |
@@ -121,7 +121,7 @@ PDF ingestion is bounded to 500 pages; OCR is bounded to 20 scanned pages per pr
 
 All application data remains in DATA_DIR, separate from source control. Back up the complete directory consistently, including SQLite WAL state when active; a stopped-server backup is the simplest local procedure. Original reports may contain sensitive information. Apply appropriate disk permissions, encrypted storage and backup controls.
 
-A Dockerfile is included for a Node.js 24 container with a persistent /app/.data volume. Bind the volume writable by the container's node user. HTTPS, trusted reverse proxy configuration, backups, operational monitoring and an account recovery process are deployment responsibilities. The application has not been deployed to a public production host.
+A Dockerfile is included for a Node.js 24 container with a persistent /app/.data volume. A Render Blueprint is included in render.yaml and provisions persistent application data. Bind any Docker volume writable by the container's node user. Vercel's serverless filesystem is ephemeral and this app uses SQLite for users, sessions and records, so a Vercel deployment without an external persistent database is not a supported login deployment. HTTPS, backups, operational monitoring and an account recovery process remain deployment responsibilities.
 
 The in-process job queue is suitable for a single application instance. Interrupted jobs are marked at startup and reports can be reprocessed. Multiple replicas, durable distributed jobs, enterprise SSO, email reset delivery, malware scanning and formal assurance controls require further deployment engineering.
 

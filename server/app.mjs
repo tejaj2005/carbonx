@@ -89,7 +89,7 @@ export async function createApp(config) {
   for (const c of await store.q('SELECT DISTINCT company_id FROM claims'))
     await work.refresh(c.company_id);
   app.disable('x-powered-by');
-  if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
+  if (process.env.TRUST_PROXY === 'true' || config.production) app.set('trust proxy', 1);
   app.use(
     helmet({
       contentSecurityPolicy: {
