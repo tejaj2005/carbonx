@@ -2552,3 +2552,166 @@ th {
   outline: 2px solid #1d6954;
   outline-offset: 3px;
 }
+
+.live-satellite-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(220px, 0.8fr);
+  gap: 28px;
+  align-items: start;
+}
+.live-satellite-layout figure {
+  margin: 0;
+}
+.live-satellite-layout img {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: #152b35;
+}
+.live-satellite-layout figcaption {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.live-satellite-layout dt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.live-satellite-layout dd {
+  margin: 3px 0;
+  font-weight: 600;
+}
+@media (max-width: 760px) {
+  .live-satellite-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.satellite-tracker {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dce7df;
+  min-width: 0;
+}
+.orbit-animation {
+  position: relative;
+  margin-bottom: 14px;
+}
+.satellite-tracker .satellite-scene,
+.satellite-tracker .satellite-scene > svg {
+  min-height: 0;
+  height: 190px;
+  border-radius: 12px;
+}
+.satellite-tracker .scene-coordinate {
+  display: none;
+}
+.orbit-pause {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+  background: #173d32;
+  color: #eef7e9;
+  border: 1px solid #86ad9166;
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-size: 10px;
+  cursor: pointer;
+}
+.animation-paused .satellite-scene * {
+  animation-play-state: paused !important;
+}
+.satellite-tracker h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.orbit-coordinate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+}
+.orbit-coordinate-grid small {
+  display: block;
+  font-size: 11px;
+  color: #5c7368;
+}
+.orbit-coordinate-grid strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.orbit-source-note {
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+  color: #587063;
+  margin: 12px 0 0;
+}
+.orbit-source-note a {
+  color: #27634d;
+  text-decoration: underline;
+}
+
+.orbit-map {
+  margin: 0 0 12px !important;
+  border: 1px solid #cfddd3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8faf7;
+}
+.orbit-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.orbit-map figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  font-size: 10px;
+  margin: 0 !important;
+}
+.geo-legend-site {
+  color: #165b41;
+}
+.geo-legend-iss {
+  color: #855011;
+}
+.facility-geolocation {
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  margin: 0 0 16px !important;
+  overflow-wrap: anywhere;
+}
+.facility-geolocation small {
+  display: block;
+  color: #667d6e;
+  font-size: 10px;
+}
+.geo-iss-pulse {
+  animation: geoBeacon 2s ease-in-out infinite;
+}
+.animation-paused .geo-iss-pulse {
+  animation-play-state: paused;
+}
+@keyframes geoBeacon {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-iss-pulse {
+    animation: none;
+  }
+}

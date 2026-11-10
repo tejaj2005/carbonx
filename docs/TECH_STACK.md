@@ -80,3 +80,12 @@ Optional Copernicus site context uses fixed CDSE OAuth/Catalog/Statistics endpoi
 See SUPABASE_SETUP.md for future PostgreSQL/Auth/Storage migration. Adding four environment values does not connect Supabase today. In-app notices persist; email is deferred.
 
 Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.
+
+## Current integration additions, 10 November 2026
+
+- server/live-satellite.mjs: fixed EUMETSAT WMS, regional India infrared PNGs, provider timestamps, 15-minute shared cache and stale fallback.
+- server/supabase.mjs: pg PostgreSQL driver, verified TLS, read-only connectivity/schema checks and bounded HTTPS Data API/Auth health checks. It is not a persistence/Auth migration.
+- scripts/check-ai-features.mjs: repeatable live Groq tests for extraction, cited answers, evidence actions and advisory explanations using synthetic fixtures only.
+- docs/INTEGRATION_VERIFICATION.md: observed results and limitations.
+
+- server/orbit.mjs: public ISS position feed, validated coordinates/time, 10-second shared cache and last-known stale fallback; React refreshes every 15 seconds. Existing SatelliteScene supplies a pausable illustrative CSS/SVG animation beside the current image.

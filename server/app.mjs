@@ -1,3 +1,5 @@
+import { orbitTools } from './orbit.mjs';
+import { satelliteTools } from './live-satellite.mjs';
 import { sendOfficeReport } from './office-exports.mjs';
 import { evidenceStatusReport } from './status-exports.mjs';
 import { satelliteProvider } from './sentinelhub.mjs';
@@ -69,6 +71,8 @@ export function createApp(config) {
     work = pipeline(store, config, ai),
     auth = authTools(store, config),
     app = express();
+  const liveSatellite = satelliteTools(),
+    orbit = orbitTools();
   const governance = governanceTools(store, config, auth);
   const monitoring = monitoringTools(store, config, ai);
   for (const c of store.q('SELECT DISTINCT company_id FROM claims')) work.refresh(c.company_id);
@@ -951,6 +955,30 @@ export function createApp(config) {
       legacyHeaders: false,
     }),
   );
+  app.get('/api/environment/satellite/position', async (_req, res) => {
+    try {
+      res.json(await orbit.position());
+    } catch {
+      res.status(503).json({ error: 'ISS orbital position is temporarily unavailable.' });
+    }
+  });
+  app.get('/api/environment/satellite/live', async (_req, res) => {
+    try {
+      res.json(await liveSatellite.metadata());
+    } catch {
+      res
+        .status(503)
+        .json({ error: 'EUMETSAT imagery is temporarily unavailable. Try again shortly.' });
+    }
+  });
+  app.get('/api/environment/satellite/live/image', async (_req, res) => {
+    try {
+      const frame = liveSatellite.frameAt(String(_req.query.t || ''));
+      res.type('png').send(frame.bytes);
+    } catch {
+      res.status(503).json({ error: 'Satellite image unavailable.' });
+    }
+  });
   app.get('/api/environment', (req, res) =>
     res.json(
       store

@@ -1,6 +1,6 @@
 # CarbonX API and data-source catalogue
 
-Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB requires DATA_GOV_IN_API_KEY. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the reserved backend migration placeholders.
+Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB requires DATA_GOV_IN_API_KEY. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the configured, partially verified backend connection.
 
 Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
 
@@ -60,7 +60,21 @@ No public city reading is presented as a specific company's measured emissions.
 - UI: not_configured/missing-key state; no invented station readings.
 - No regulatory comparison is made from unknown unit or averaging metadata.
 
-## 4. Earth Search and Sentinel-2 L2A
+## 4a. EUMETSAT near-real-time India satellite view
+
+- Official API: https://view.eumetsat.int/geoserver/wms
+- Official guidance: https://user.eumetsat.int/data-access/eumetview/resources
+- Public WMS capabilities identify layer msg_iodc:ir108, Meteosat SEVIRI 10.8 μm infrared over the Indian Ocean.
+- The provider advertises a 15-minute time dimension. CarbonX reads its latest capture timestamp rather than substituting the current time.
+- GetMap requests use EPSG:4326, India regional bounds 67,6,98,37 and a 640×640 PNG. No personal API key or exact company coordinate is sent.
+- Backend cache: 15 minutes with concurrent request sharing, last-good stale fallback and four timestamp-bound frames. Images are proxied through authenticated same-origin routes; users cannot choose provider URLs.
+- UI: primary latest satellite view; shows capture/retrieval times, image age, source interval and attribution. Refreshes while the view is open; this does not represent a continuously streaming camera.
+- This is regional infrared cloud/weather context, not factory emissions, land ownership, ISS location validation, NDVI or a carbon-credit verdict.
+- Live PNG fetch and website rendering verified on 10 November 2026. Source availability and latency can vary.
+- Historical Sentinel-2 is retained for vegetation/water comparison because infrared weather images cannot replace red/NIR/green measurements.
+- Attribution: © EUMETSAT. Review provider terms for the intended deployment.
+
+## 4b. Earth Search and Sentinel-2 L2A
 
 - Official project: https://github.com/Element84/earth-search
 - STAC search: POST https://earth-search.aws.element84.com/v1/search
@@ -132,3 +146,24 @@ The workflow was not executed, the lost n8n workspace was not contacted, and rec
 - data/reference-data.json: Infosys India renewable electricity shares 67.5% (FY2023–24) and 77.7% (FY2024–25), a 10.2 percentage-point difference. Sources, boundaries and limitations are preserved in each record. Historical company-reported references are not facility emissions or approval decisions. See DEMO_DATA.md.
 - data/demo-data.json replaces inline Riverbend seeding. Supported evidence and government acceptance remain different statuses. Existing workspaces are not overwritten.
 - Supabase keys are reserved placeholders only. Current persistence is SQLite; migration/Auth/Storage/RLS are not yet connected. Email remains deferred.
+
+Latest live results and limitations: see INTEGRATION_VERIFICATION.md.
+
+## Live ISS orbital coordinates
+
+- Source and documentation: https://wheretheiss.at/w/developer
+- Fixed HTTPS endpoint: https://api.wheretheiss.at/v1/satellites/25544
+- Current API requires no authentication. Its published rate limit is approximately one request per second.
+- CarbonX caches/shares requests for 10 seconds; the Site verification panel polls every 15 seconds while open.
+- Displays supplied latitude, longitude, altitude in kilometres, position time, provider source and stale/unavailable states.
+- Coordinates, units, satellite ID and time are validated; a failed refresh retains the last-known labelled position. No demo coordinates substitute for a failure.
+- A live HTTP 200 response with NORAD ID 25544 and timestamp 1794324509 was verified on 10 November 2026.
+- Animation is illustrative and can be paused; it respects reduced-motion settings. It is not a projected live orbit or a sensor simulation.
+- The ISS tracking feed is separate from Meteosat imagery. It cannot validate company location ownership, emissions or carbon credits.
+- Existing Site verification page only; no added subpage, credential form or satellite API key is needed.
+
+## Bundled geolocation map
+
+Natural Earth 1:110m land polygons, public domain, bundled as an SVG coastline map. Source: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson
+
+Source SHA-256: 9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9. Equirectangular longitude/latitude projection. Live ISS coordinates and selected saved facility coordinates are plotted locally; no company coordinates are sent to a map/tile provider. This is a geographic overview, not a cadastral or legal boundary map. Terms: https://www.naturalearthdata.com/about/terms-of-use/

@@ -16,7 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "admin:create": "node --env-file-if-exists=.env scripts/create-admin.mjs",
-    "integrations:check": "node --env-file-if-exists=.env scripts/check-integrations.mjs"
+    "integrations:check": "node --env-file-if-exists=.env scripts/check-integrations.mjs",
+    "supabase:check": "node --env-file-if-exists=.env scripts/check-supabase.mjs",
+    "ai:verify": "node --env-file-if-exists=.env scripts/check-ai-features.mjs"
   },
   "dependencies": {
     "cookie-parser": "1.4.7",
@@ -34,6 +36,7 @@
     "openai": "7.54.0",
     "pdf-parse": "2.4.5",
     "pdfkit": "0.20.2",
+    "pg": "8.23.1",
     "proj4": "2.22.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",

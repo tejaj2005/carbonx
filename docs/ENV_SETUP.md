@@ -1,6 +1,6 @@
 # CarbonX environment setup
 
-The root .env is ignored by Git and Docker. .env.example contains blank placeholders only. Never paste another key into chat. Rotate the exposed key in the Groq console, then put the replacement in .env.
+The root .env is ignored by Git and Docker. .env.example contains blank placeholders only. The supplied credentials are now configured locally. For deployment, replace any credential shared in chat with a fresh value in .env.
 
 ## AI
 
@@ -9,7 +9,7 @@ The root .env is ignored by Git and Docker. .env.example contains blank placehol
 3. Restart CarbonX. Run npm.cmd run integrations:check. To request a small synthetic inference test, run npm.cmd run integrations:check -- --ai.
 4. Normal AI processing sends selected uploaded report text/evidence to Groq. The checker sends only a synthetic status prompt. Account free-tier rate limits, model availability and any enabled billing still apply.
 
-The Groq adapter uses https://api.groq.com/openai/v1. It cannot send a Groq credential to xAI. Grok/xAI remains an explicit optional alternative using AI_PROVIDER=xai, XAI_API_KEY and XAI_MODEL. The pasted key was not stored or sent to either provider.
+The Groq adapter uses https://api.groq.com/openai/v1. It cannot send a Groq credential to xAI. Grok/xAI remains an explicit optional alternative using AI_PROVIDER=xai, XAI_API_KEY and XAI_MODEL. The supplied Groq key is now saved in ignored .env and has been verified against Groq, including all four synthetic AI task checks.
 
 AI supports source-quoted claim extraction, cited evidence answers, evidence-gathering actions and alert explanations. Server prompts are in server/prompts.mjs. JSON output is locally validated; citations must match supplied evidence. AI does not approve claims, change licences or establish a legal violation. Missing keys leave the baseline available. Search remains lexical; no extra embeddings API is assumed.
 
@@ -18,7 +18,11 @@ AI supports source-quoted claim extraction, cited evidence answers, evidence-gat
 Open-Meteo weather and CAMS regional air-quality model endpoints already work without keys. They are contextual model output, not factory emissions telemetry.
 For official station summaries, create your own data.gov.in account key and place it in DATA_GOV_IN_API_KEY. Station availability, metadata and measurement basis must still be checked.
 
-## Credential-based satellite imagery
+## Current satellite view
+
+The primary India view uses EUMETSAT public infrared imagery with a 15-minute source interval. It needs no key. Capture time, age and stale states are shown. Historical Sentinel-2 comparisons remain separate.
+
+## Optional credential-based historical satellite imagery
 
 1. Register/sign in to Copernicus Data Space at https://dataspace.copernicus.eu/.
 2. Open the Sentinel Hub dashboard, User Settings, OAuth clients, and create a client.
@@ -32,7 +36,7 @@ ISS position is an orbital coordinate feed, not imagery or a company-location va
 
 ## Supabase
 
-See SUPABASE_SETUP.md for the four placeholders and where to find them. They are reserved and do not yet replace SQLite. Email is intentionally deferred.
+Supabase URL, server key and database connection are configured. HTTPS Data API/Auth health checks pass; PostgreSQL session-pooler connectivity times out, so database authentication remains unverified. See SUPABASE_SETUP.md. Application storage still uses SQLite. Email is intentionally deferred.
 
 ## Run
 

@@ -1,3 +1,5 @@
+import { orbitTools } from '../server/orbit.mjs';
+import { satelliteTools } from '../server/live-satellite.mjs';
 import { config } from '../server/config.mjs';
 import { providers } from '../server/providers.mjs';
 import { fetchJson } from '../server/environment.mjs';
@@ -77,6 +79,25 @@ const rows = [
           : 'credential check failed',
   },
 ];
+try {
+  const frame = await satelliteTools().metadata();
+  rows.push({
+    service: 'EUMETSAT India satellite',
+    status: frame.status === 'available' ? 'connected; near real time' : 'stale provider frame',
+    observedAt: frame.observedAt,
+  });
+} catch {
+  rows.push({ service: 'EUMETSAT India satellite', status: 'unavailable' });
+}
+try {
+  const p = await orbitTools().position();
+  rows.push({
+    service: 'Live ISS coordinates',
+    status: p.status === 'available' ? 'connected' : 'stale provider position',
+  });
+} catch {
+  rows.push({ service: 'Live ISS coordinates', status: 'unavailable' });
+}
 if (process.argv.includes('--ai')) {
   const ai = aiTools(config);
   if (!ai.available) rows.push({ service: 'AI inference', status: 'not configured' });

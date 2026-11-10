@@ -1,41 +1,40 @@
 # Supabase setup for CarbonX
 
-Status: preparation only. Today's backend stores records in SQLite and files locally. Adding the values below does not migrate data, connect Supabase Auth or install storage policies. Do not delete .data.
+The project's existing URL, server secret key, session-pooler connection URI and supplied database password are saved in the ignored root .env. They are backend configuration; no credentials or setup form are displayed in CarbonX.
 
-## Values to save manually in the ignored root .env
+The existing server key was accepted by the project's Data API and Auth health endpoint (HTTP 200). PostgreSQL on the dashboard's session-pooler port timed out before authentication. The database password is therefore unverified. No remote tables, passwords, policies, keys or records were changed.
 
-| Variable                 | Where to find it                                                      | Purpose                                                                 |
-| ------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| SUPABASE_URL             | Project Dashboard → Connect, or Project Settings → Data API / API URL | Project API URL, usually https://PROJECT_REF.supabase.co                |
-| SUPABASE_PUBLISHABLE_KEY | Project Settings → API Keys → Publishable key                         | Client identity for future Auth/data access under user identity and RLS |
-| SUPABASE_SECRET_KEY      | Project Settings → API Keys → Secret key                              | Server-only privileged operations; bypasses RLS                         |
-| SUPABASE_DB_URL          | Dashboard → Connect → connection string                               | PostgreSQL URL containing DB password for server/migrations             |
+## Active environment entries
 
-Use current publishable and secret keys where offered. Legacy anon/service_role keys are the older equivalents; do not add both sets unless an adapter specifically needs them. Never put the secret key or DB URL in VITE_ variables, frontend code or Git.
+| Variable                 | Purpose and status                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| SUPABASE_URL             | Configured project HTTPS URL                                                                            |
+| SUPABASE_SECRET_KEY      | Configured existing server-only key; HTTPS API access verified                                          |
+| SUPABASE_DB_URL          | Dashboard session-pooler URI with encoded supplied password; network timeout                            |
+| SUPABASE_DB_PASSWORD     | Optional separate local password record; checker uses the URI                                           |
+| SUPABASE_PUBLISHABLE_KEY | Not needed by today's server-only connection checks; leave blank until an Auth/browser adapter needs it |
 
-## Steps
+Do not put a secret key, password or database URL in frontend code, VITE_ variables, Git, report exports or screenshots.
 
-1. Confirm you are in the intended project, then copy the project URL and API keys into the four existing blank .env entries. Keep the values out of chat.
-2. In Connect, choose a connection mode supported by your deployment. A persistent Node server on IPv4 can use the session pooler; direct connections may require IPv6. Use the dashboard's exact user/host/port, not guessed values.
-3. Replace the password placeholder locally with your database password. Percent-encode URI-reserved characters in the password component (for example @, :, /, #, ? and %); do not encode the entire connection string. If the dashboard provides separate connection fields, a future adapter can avoid manual URI construction.
-4. Keep production database access private. Future browser queries need table-specific RLS; a publishable key is not authorization by itself.
-5. When the adapter/migrations are implemented, use a staging project first, apply schema, ownership/role/RLS policies and private Storage buckets, then verify company isolation and government permissions before importing production records.
+## Verify and resolve the database timeout
 
-## IDs you do not need to supply separately yet
+1. Run npm.cmd run supabase:check from the CarbonX folder. Output contains only status, TLS/schema counts and timestamps, never credentials.
+2. Confirm the deployment/network can reach the dashboard's session-pooler host on port 5432. A timeout is not proof of an incorrect password.
+3. Keep the exact host, project username and port from Dashboard → Connect. Session pooling supports IPv4. Percent-encode reserved password characters in the password part of the URI.
+4. Certificate and hostname validation remain enabled. If a trusted CA needs to be installed, use the official Supabase certificate instructions; do not disable verification.
+5. Once reachable, rerun the check. It performs a read-only transaction and schema count; it does not install or alter anything.
 
-The project reference is already in SUPABASE_URL/connection information. Organization ID, personal access token, JWT signing secret, user IDs and DB password as a separate chat value are not needed for this setup.
+## Application backend status
 
-## Work still required to connect it
+CarbonX still uses SQLite for records, CarbonX password/session authentication and local private upload storage. Successful Supabase connection checks do not migrate these systems.
 
-- PostgreSQL persistence adapter and repeatable migrations for current SQLite tables.
-- Supabase Auth/session decision with account linking and role checks.
-- Private Storage adapter for uploads and controlled evidence downloads.
-- RLS/company separation and bounded Government Oversight authority tests.
-- Backup/import verification, deployment configuration and a continuously running monitoring worker.
+The remaining migration work is a PostgreSQL persistence adapter and repeatable schema/data migrations; an Auth/account-linking decision; private Storage access; company ownership/RLS and Government Oversight regression tests; backup/import and deployment verification. Preserve .data until a migration is verified.
 
-Supabase will not run this Express process or polling worker merely because keys are present. Email/SMTP is the final phase, as requested; do not configure recipient delivery now.
+Supabase alone does not start this Express service, OCR/report queue or scheduled monitoring worker. A continuously running Node host or worker deployment is still required. Email is the final phase and remains unconfigured.
 
-References:
+No organization ID, personal access token, JWT signing secret or additional chat password is required for the current checks. A publishable key can be added later if the chosen Auth design needs it.
 
-- https://supabase.com/docs/guides/getting-started/api-keys
+Official references:
+
 - https://supabase.com/docs/guides/database/connecting-to-postgres
+- https://supabase.com/docs/guides/getting-started/api-keys
