@@ -71,12 +71,12 @@ export function validateCitations(items, chunks) {
     );
   });
 }
-export function aiTools(config) {
+export function aiTools(config, { fetcher = fetch, xaiApiKey = process.env.XAI_API_KEY } = {}) {
   const local = config.aiEnabled && config.aiProvider === 'ollama';
   const localPost = async (path, body) => {
     for (const name of [body.model])
       if (!name || /cloud/i.test(name)) throw Error('Choose an explicitly local Ollama model.');
-    const response = await fetch('http://127.0.0.1:11434' + path, {
+    const response = await fetcher('http://127.0.0.1:11434' + path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
@@ -91,11 +91,49 @@ export function aiTools(config) {
       );
     return response.json();
   };
+  const xai = config.aiEnabled && config.aiProvider === 'xai' && Boolean(xaiApiKey?.trim());
+  const xaiClient = xai
+    ? new OpenAI({
+        apiKey: xaiApiKey.trim(),
+        baseURL: 'https://api.x.ai/v1',
+        timeout: 120000,
+        maxRetries: 0,
+        fetch: fetcher,
+        fetchOptions: { redirect: 'error' },
+      })
+    : null;
   const client =
-    config.aiEnabled && !local && process.env.ALLOW_PAID_AI === 'true'
+    config.aiEnabled && config.aiProvider === 'openai' && process.env.ALLOW_PAID_AI === 'true'
       ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 60000, maxRetries: 2 })
       : null;
   async function structured(schema, name, instructions, input) {
+    if (xaiClient) {
+      try {
+        const result = await xaiClient.chat.completions.create({
+          model: config.aiModel,
+          messages: [
+            { role: 'system', content: instructions },
+            { role: 'user', content: input },
+          ],
+          response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
+          max_tokens: 7000,
+        });
+        const choice = result.choices?.[0];
+        if (!choice?.message?.content || (choice.finish_reason && choice.finish_reason !== 'stop'))
+          throw Error('Incomplete structured output');
+        const data = JSON.parse(choice.message.content);
+        if (!data || typeof data !== 'object' || Array.isArray(data))
+          throw Error('Invalid structured output');
+        return { data, model: result.model || config.aiModel };
+      } catch (e) {
+        const status = Number.isInteger(e.status) ? ' HTTP ' + e.status : '';
+        throw Error(
+          'Grok request failed' +
+            status +
+            '. Check XAI_API_KEY, model access, credits and the provider response status.',
+        );
+      }
+    }
     if (local) {
       const result = await localPost('/api/generate', {
         model: config.aiModel,
@@ -108,7 +146,10 @@ export function aiTools(config) {
       if (!result.response) throw Error('The local model returned no structured output.');
       return { data: JSON.parse(result.response), model: result.model || config.aiModel };
     }
-    if (!client) throw new Error('AI is not configured. Choose a free local Ollama model.');
+    if (!client)
+      throw new Error(
+        'AI is not configured. Add XAI_API_KEY to the server .env file and restart CarbonX.',
+      );
     const result = await client.responses.create({
       model: config.aiModel,
       store: false,
@@ -121,6 +162,7 @@ export function aiTools(config) {
     return { data: JSON.parse(result.output_text), model: result.model };
   }
   async function embed(texts) {
+    if (config.aiProvider === 'xai') return null;
     if (local) {
       if (!config.embeddingModel)
         throw Error(
@@ -212,7 +254,9 @@ export function aiTools(config) {
     embed,
     extract,
     answer,
-    available: local || Boolean(client),
-    provider: local ? 'ollama' : client ? 'openai' : 'none',
+    available: local || Boolean(xaiClient) || Boolean(client),
+    embeddingsAvailable:
+      config.aiProvider !== 'xai' && Boolean(config.embeddingModel) && (local || Boolean(client)),
+    provider: local ? 'ollama' : xaiClient ? 'xai' : client ? 'openai' : 'none',
   };
 }

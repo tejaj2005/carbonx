@@ -1,5 +1,6 @@
 import { fromUrl } from 'geotiff';
 import proj4 from 'proj4';
+import { providers } from './providers.mjs';
 export async function fetchJson(url, options = {}) {
   const r = await fetch(url, { ...options, signal: AbortSignal.timeout(25000), redirect: 'error' });
   if (!r.ok)
@@ -19,13 +20,15 @@ export async function atmosphericContext(facility, fetcher = fetchJson) {
   const sources = [
     [
       'weather',
-      'https://api.open-meteo.com/v1/forecast?' +
+      providers.weather +
+        '?' +
         location +
         '&current=temperature_2m,relative_humidity_2m,wind_speed_10m&past_days=2&forecast_days=1&hourly=temperature_2m',
     ],
     [
       'air_quality',
-      'https://air-quality-api.open-meteo.com/v1/air-quality?' +
+      providers.airQuality +
+        '?' +
         location +
         '&current=pm2_5,pm10,nitrogen_dioxide,carbon_monoxide&past_days=2&forecast_days=1&hourly=pm2_5',
     ],
@@ -65,7 +68,7 @@ export function assetUrl(value) {
   return u.href;
 }
 export async function searchScene(facility, start, end, fetcher = fetchJson) {
-  const data = await fetcher('https://earth-search.aws.element84.com/v1/search', {
+  const data = await fetcher(providers.satellite + '/search', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -184,8 +187,7 @@ export async function analyzeScene(scene, facility) {
     cloudCover: scene.properties['eo:cloud_cover'],
     thumbnail: scene.assets.thumbnail ? assetUrl(scene.assets.thumbnail.href) : null,
     source:
-      'https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/' +
-      encodeURIComponent(scene.id),
+      providers.satellite + '/collections/sentinel-2-l2a/items/' + encodeURIComponent(scene.id),
     sampleWindowMeters: 1000,
     sampling: '64 by 64 nearest-neighbour samples in a 1 km square centred on the selected site',
     ...indices(red, nir, green, scl, scales),

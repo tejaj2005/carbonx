@@ -48,7 +48,7 @@ export function Recommendations() {
         action={
           !data.settings.providers.hostedAI?.configured ? (
             <a className="button secondary" href="#settings">
-              Set up local AI
+              Set up Grok
             </a>
           ) : (
             <button
@@ -502,7 +502,7 @@ export function SettingsPage() {
           <div className="provider-list">
             <div>
               <span>
-                <b>AI extraction & embeddings</b>
+                <b>AI report analysis</b>
                 <small>
                   {p.hostedAI?.configured ? p.hostedAI.model : 'Keyword baseline is active'}
                 </small>
@@ -556,16 +556,16 @@ export function SettingsPage() {
             server and are excluded from Git.
           </p>
           <pre className="config-code">
-            AI_PROVIDER=ollama{'\n'}OLLAMA_MODEL=your_local_model{'\n'}
-            OLLAMA_EMBEDDING_MODEL=your_local_embedding_model{'\n'}ENABLE_MONITORING=true
+            AI_PROVIDER=xai{'\n'}XAI_API_KEY=your_key{'\n'}XAI_MODEL=grok-4.7{'\n'}
+            ENABLE_MONITORING=true
           </pre>
           <p className="fine-print">
-            Local AI needs a running Ollama service and installed model. No credential was recovered
-            from the old n8n workflow. New credentials are required for hosted AI.
+            Add your key in the server .env file and restart CarbonX. Grok processes selected report
+            evidence using your xAI account.
           </p>
           <a
             className="text-link"
-            href="https://docs.ollama.com/capabilities/structured-outputs"
+            href="https://docs.x.ai/overview"
             target="_blank"
             rel="noreferrer"
           >

@@ -1,5 +1,7 @@
 # Backend deployment and Supabase inputs
 
+Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+
 This is a deployment proposal and requirements list, not a completed Supabase integration. Email is deliberately deferred until the core website, data and deployment path are ready.
 
 ## Current autonomous operation

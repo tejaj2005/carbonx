@@ -73,22 +73,15 @@ No real company reports, production credentials, pre-claimed benchmark results o
 
 A supported claim means consistency with the supplied historical evidence and implemented rules. It is not an independent assurance, fraud verdict, SDG certification or carbon-credit validation.
 
-## Free local AI
+## Grok AI setup
 
-The default AI provider is a local Ollama service. It needs an installed local text model; local embeddings are optional. No paid API key or external AI subscription is required. No model has been installed or live inference verified on this machine yet.
+The default AI provider is Grok/xAI. The ignored .env file is prepared: add XAI_API_KEY and optionally DATA_GOV_IN_API_KEY, then restart CarbonX. The public weather, modelled air-quality and Sentinel-2 endpoints are already configured without keys. No local AI model is required.
 
-Copy .env.example to .env, choose model names already installed in Ollama, and restart CarbonX:
+Grok supports structured report extraction, cited evidence answers, action plans and alert explanations. It uses your xAI API credits/billing and sends selected report evidence to xAI when requested. Evidence retrieval remains lexical; no Grok embedding service is assumed. Missing credentials keep the labelled baseline active.
 
-```dotenv
-AI_PROVIDER=ollama
-OLLAMA_MODEL=
-OLLAMA_EMBEDDING_MODEL=
-ALLOW_PAID_AI=false
-```
+Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. No live Grok inference has been verified while the key is blank.
 
-The adapter connects only to http://127.0.0.1:11434 and supports structured extraction, cited answers, action plans and advisory explanations. Explicitly cloud-labelled model names are rejected. Model installation, licence terms, local memory and runtime availability must be checked for the chosen model.
-
-Until AI is configured and successfully exercised, the website uses a labelled keyword/rules baseline and lexical search. Configuration alone does not prove successful inference. Model output cannot change a threshold, reviewer decision or licence automatically. Legacy hosted-provider support is disabled by default behind a separate paid-provider opt-in; it is not used for this free-tools pilot.
+See [simple environment setup](docs/ENV_SETUP.md). Supabase migration and email remain separate later work. Optional legacy providers are not selected by the default configuration.
 
 ## India metropolitan monitoring
 

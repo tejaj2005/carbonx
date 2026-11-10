@@ -308,7 +308,7 @@ function UploadReport({ onClose }: { onClose: () => void }) {
           </b>
           <p>
             {data.settings.providers.hostedAI?.configured
-              ? 'Extracted passages will be sent to the configured AI provider for embeddings and claim mapping.'
+              ? 'Extracted passages will be sent to the configured AI provider for claim analysis.'
               : 'No AI processor is configured. The local keyword baseline will extract candidate claims and suggest SDGs.'}
           </p>
         </div>

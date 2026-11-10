@@ -15,7 +15,8 @@
     "check": "node --check server/index.mjs && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "admin:create": "node --env-file-if-exists=.env scripts/create-admin.mjs"
+    "admin:create": "node --env-file-if-exists=.env scripts/create-admin.mjs",
+    "integrations:check": "node --env-file-if-exists=.env scripts/check-integrations.mjs"
   },
   "dependencies": {
     "cookie-parser": "1.4.7",

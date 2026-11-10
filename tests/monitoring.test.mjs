@@ -241,6 +241,56 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
       assert.equal(own.body.rules[0].assessment.legalFinding, false);
     },
   );
+  await t.test(
+    'Grok explanations accept authorised alert evidence without changing the assessment',
+    async () => {
+      const original = {
+        available: system.ai.available,
+        structured: system.ai.structured,
+        provider: config.aiProvider,
+      };
+      let sent;
+      try {
+        config.aiProvider = 'xai';
+        system.ai.available = true;
+        system.ai.structured = async (_schema, _name, _instructions, input) => {
+          sent = JSON.parse(input);
+          return {
+            data: {
+              summary: 'Synthetic Grok integration test',
+              cautions: ['Requires human review'],
+            },
+            model: 'grok-4.7',
+          };
+        };
+        const alert = system.store.get('SELECT * FROM monitoring_alerts WHERE rule_id=?', ruleId);
+        const r = await company.client
+          .post('/api/monitoring/alerts/' + alert.id + '/explain')
+          .set('X-CSRF-Token', company.csrf)
+          .send({});
+        assert.equal(r.status, 200);
+        assert.ok(sent.evidence);
+        assert.equal(sent.evidence.legalFinding, false);
+        const stored = system.store.get('SELECT * FROM monitoring_alerts WHERE id=?', alert.id);
+        assert.equal(stored.status, alert.status);
+        assert.equal(JSON.parse(stored.ai_json).advisoryOnly, true);
+        const outsider = await account('Unrelated company');
+        assert.equal(
+          (
+            await outsider.client
+              .post('/api/monitoring/alerts/' + alert.id + '/explain')
+              .set('X-CSRF-Token', outsider.csrf)
+              .send({})
+          ).status,
+          404,
+        );
+      } finally {
+        config.aiProvider = original.provider;
+        system.ai.available = original.available;
+        system.ai.structured = original.structured;
+      }
+    },
+  );
   await t.test('re-evaluation does not spam and missing data does not clear a breach', () => {
     const count = system.store.get('SELECT COUNT(*) n FROM notifications').n;
     system.monitoring.evaluateRules();

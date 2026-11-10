@@ -1,4 +1,5 @@
 import { fetchJson } from './environment.mjs';
+import { providers } from './providers.mjs';
 export const INDIA_METROS = [
   {
     id: 'delhi',
@@ -139,13 +140,15 @@ export async function fetchMetroModel(city, fetcher = fetchJson, clock = Date.no
   const calls = [
     [
       'air',
-      'https://air-quality-api.open-meteo.com/v1/air-quality?' +
+      providers.airQuality +
+        '?' +
         coords +
         '&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide&hourly=pm2_5,pm10&past_days=2&forecast_days=1&domains=cams_global',
     ],
     [
       'weather',
-      'https://api.open-meteo.com/v1/forecast?' +
+      providers.weather +
+        '?' +
         coords +
         '&current=temperature_2m,relative_humidity_2m,wind_speed_10m&forecast_days=1',
     ],

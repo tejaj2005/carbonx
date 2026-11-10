@@ -1,5 +1,7 @@
 # CarbonX API and data-source catalogue
 
+Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+
 Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
 
 Scope: the actual implementation in this checkout, reviewed 10 November 2026. This file describes what is implemented, what has been exercised live, what is company supplied and what is synthetic. Credentials are never included.

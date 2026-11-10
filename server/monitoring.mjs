@@ -580,8 +580,11 @@ export function monitoringTools(store, config, ai, adapters = {}) {
     app.post('/api/monitoring/alerts/:id/explain', async (req, res) => {
       const a = store.get('SELECT * FROM monitoring_alerts WHERE id=?', req.params.id);
       if (!a || !allowedAlert(req, a)) throw error('Alert not found.', 404);
-      if (!ai.available || config.aiProvider !== 'ollama')
-        throw error('Configure an explicitly local Ollama model for the free AI explanation.', 409);
+      if (!ai.available)
+        throw error(
+          'Add your Grok API key on the server and restart CarbonX to enable explanations.',
+          409,
+        );
       const schema = {
         type: 'object',
         additionalProperties: false,

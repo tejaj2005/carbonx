@@ -118,7 +118,7 @@ export function pipeline(store, config, ai) {
           store.insert('chunks', { ...c, embedding: null, embedding_model: null });
       });
       progress(job, 'Building evidence index', 35);
-      if (ai.available) {
+      if (ai.available && ai.embeddingsAvailable) {
         try {
           for (let i = 0; i < chunks.length; i += 32) {
             const batch = chunks.slice(i, i + 32),
@@ -268,7 +268,7 @@ export function pipeline(store, config, ai) {
       ...[company, ...(reportId ? [reportId] : [])],
     );
     const lexical = lexicalSearch(query, chunks, Math.max(k, 20));
-    if (!useAI || !ai.available || !chunks.some((c) => c.embedding))
+    if (!useAI || !ai.available || !ai.embeddingsAvailable || !chunks.some((c) => c.embedding))
       return { mode: 'lexical', passages: lexical.slice(0, k).map(({ embedding, ...c }) => c) };
     try {
       const [vector] = await ai.embed([query]);

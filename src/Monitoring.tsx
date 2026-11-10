@@ -582,11 +582,11 @@ export function MonitoringPage() {
           <div>
             <Sparkles size={19} />
             <span>
-              <b>Free local AI explanation</b>
+              <b>Grok AI explanation</b>
               <small>
                 {m.ai.configured
-                  ? 'Local model configured; successful inference must be verified'
-                  : 'Set up a local Ollama model to enable AI'}
+                  ? 'Grok configured; connection must be verified'
+                  : 'Add your Grok API key to enable AI'}
               </small>
             </span>
           </div>
@@ -677,7 +677,7 @@ export function MonitoringPage() {
                 {m.ai.configured && (
                   <button className="text-link" disabled={busy} onClick={() => void explain(a.id)}>
                     <Sparkles size={14} />
-                    Explain with local AI
+                    Explain with Grok
                   </button>
                 )}
               </article>

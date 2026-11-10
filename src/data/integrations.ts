@@ -47,13 +47,12 @@ export const integrations = [
   },
   {
     id: 'ai',
-    name: 'Local Ollama',
-    type: 'Optional local AI',
-    source: 'https://docs.ollama.com/api/generate',
+    name: 'Grok / xAI',
+    type: 'Hosted AI',
+    source: 'https://docs.x.ai/overview',
     features:
-      'Structured report extraction, cited answers, action recommendations and alert explanations; optional local embeddings.',
-    status:
-      'Requires an installed model and running local service. Rules/search remain available without it.',
+      'Structured report extraction, cited answers, action recommendations and alert explanations. Evidence search remains lexical.',
+    status: 'Requires XAI_API_KEY and model access. Rules/search remain available without the key.',
     limitations:
       'Configuration is not successful inference. AI cannot automatically make legal findings or suspend licences.',
   },

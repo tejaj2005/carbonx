@@ -1,5 +1,7 @@
 # CarbonX production-readiness assessment
 
+Current configuration update: Grok/xAI replaces the local model as the default AI provider. Add XAI_API_KEY in the ignored .env file. Weather, modelled AQ and satellite endpoints are keyless and configured. Official station summaries still need DATA_GOV_IN_API_KEY. No local Ollama runtime is required for the selected configuration. Earlier local-model descriptions below are historical/optional; see ENV_SETUP.md for the active setup.
+
 Assessed locally on 10 November 2026. Status: functional full-stack India review pilot; not production-ready for continuous industrial enforcement or an internet-facing service.
 
 ## What runs now

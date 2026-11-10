@@ -100,3 +100,7 @@ See production-readiness.md for missing credentials/data and deployment requirem
 ## Presentation cleanup follow-up
 
 See [UI review](UI_REVIEW.md) for the 23-route desktop/mobile inspection, visual studio checks, real site-provider requests, observed mobile overflow and scroll-position fixes, and the 53-test regression run after navigation consolidation.
+
+## Grok and environment integration
+
+The complete suite passed 59 checks after adding xAI/Grok request, configuration, citation, error-redaction and authorised alert-explanation tests. Production build and TypeScript checks passed. Live keyless checks returned connected for Open-Meteo weather, atmospheric model output and the Earth Search Sentinel-2 collection. Official CPCB stations and Grok correctly reported key required. No live Grok inference or paid request was made. The ignored .env was created with blank secret fields; .env.example is the tracked template. The restarted HTTP server returned 200 and reported provider xai, configured false, eight cities and stationConfigured false. See ENV_SETUP.md for the two key fields and manual connection check.

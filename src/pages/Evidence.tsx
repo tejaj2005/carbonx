@@ -107,7 +107,7 @@ export function Evidence() {
               Include a grounded AI answer
             </label>
             <span className="muted">
-              {data.settings.providers.hostedAI?.configured
+              {data.settings.providers.hostedAI?.embeddingsConfigured
                 ? 'Hybrid retrieval available'
                 : 'Lexical retrieval active'}
             </span>

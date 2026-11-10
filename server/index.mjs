@@ -32,9 +32,7 @@ server.listen(config.port, config.host, () =>
       ':' +
       config.port +
       ' | ' +
-      (config.aiEnabled
-        ? 'AI configured'
-        : 'keyword baseline; configure free local Ollama in .env'),
+      (config.aiEnabled ? 'AI configured' : 'keyword baseline; add XAI_API_KEY to .env for Grok'),
   ),
 );
 monitoring.start();

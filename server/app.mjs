@@ -355,6 +355,7 @@ export function createApp(config) {
           provider: ai.provider,
           model: config.aiModel || null,
           embeddingModel: config.embeddingModel,
+          embeddingsConfigured: ai.embeddingsAvailable,
           mode: ai.available
             ? ai.provider === 'ollama'
               ? 'local-rag'
@@ -843,7 +844,7 @@ export function createApp(config) {
   app.post('/api/recommendations/generate', reviewers, async (req, res) => {
     if (!ai.available)
       throw error(
-        'Configure a free local Ollama model on the server to generate an AI-assisted plan.',
+        'Add your Grok API key on the server and restart CarbonX to generate an AI-assisted plan.',
         409,
       );
     const claims = store.q(
