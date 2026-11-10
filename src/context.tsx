@@ -1,0 +1,146 @@
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { api, mutate, setCSRF, type User, type Item } from './api';
+type Workspace = {
+  user: User | null;
+  ready: boolean;
+  loading: boolean;
+  data: Item;
+  toast: (s: string) => void;
+  refresh: () => Promise<void>;
+  signIn: (x: any) => void;
+  logout: () => void;
+  openClaim: (id: string) => void;
+  claimId: string | null;
+  closeClaim: () => void;
+};
+const Context = createContext<Workspace>(null!);
+const blank = {
+  dashboard: { stats: {}, coverage: [], observations: [], recentReports: [], recentActivity: [] },
+  reports: [],
+  claims: [],
+  facilities: [],
+  history: [],
+  jobs: [],
+  recommendations: [],
+  environment: [],
+  evaluations: { cases: [], runs: [] },
+  settings: { providers: {} },
+  audit: [],
+  team: [],
+};
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null),
+    [ready, setReady] = useState(false),
+    [loading, setLoading] = useState(false),
+    [data, setData] = useState<Item>(blank),
+    [message, setMessage] = useState(''),
+    [claimId, setClaimId] = useState<string | null>(null);
+  useEffect(() => {
+    api('/auth/me')
+      .then((x) => {
+        setCSRF(x.csrf);
+        setUser(x.user);
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
+  }, []);
+  const toast = useCallback((s: string) => setMessage(s), []);
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(''), 5500);
+    return () => clearTimeout(t);
+  }, [message]);
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const keys = [
+        'dashboard',
+        'reports',
+        'claims',
+        'facilities',
+        'history',
+        'jobs',
+        'recommendations',
+        'environment',
+        'evaluations',
+        'settings',
+      ];
+      if (user.role !== 'analyst') keys.push('audit');
+      if (user.role === 'owner') keys.push('team');
+      const values = await Promise.all(keys.map((k) => api('/' + k)));
+      setData({ ...blank, ...Object.fromEntries(keys.map((k, i) => [k, values[i]])) });
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  useEffect(() => {
+    if (!data.jobs.some((j: Item) => ['queued', 'running'].includes(j.status))) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const jobs = await api('/jobs');
+        if (cancelled) return;
+        if (jobs.some((j: Item) => ['queued', 'running'].includes(j.status)))
+          setData((previous) => ({ ...previous, jobs }));
+        else await refresh();
+      } catch (e) {
+        if (!cancelled) toast((e as Error).message);
+      }
+    }, 2200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [data.jobs, refresh, toast]);
+  const signIn = (x: any) => {
+    setCSRF(x.csrf);
+    setData(blank);
+    setUser(x.user);
+    setReady(true);
+  };
+  const logout = async () => {
+    try {
+      await mutate('/auth/logout');
+      setCSRF('');
+      setUser(null);
+      setData(blank);
+      setClaimId(null);
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
+  return (
+    <Context.Provider
+      value={{
+        user,
+        ready,
+        loading,
+        data,
+        toast,
+        refresh,
+        signIn,
+        logout,
+        openClaim: setClaimId,
+        claimId,
+        closeClaim: () => setClaimId(null),
+      }}
+    >
+      {children}
+      {message && (
+        <div className="toast" role="status">
+          <span>{message}</span>
+          <button onClick={() => setMessage('')} aria-label="Dismiss notification">
+            ×
+          </button>
+        </div>
+      )}
+    </Context.Provider>
+  );
+}
+export const useWorkspace = () => useContext(Context);

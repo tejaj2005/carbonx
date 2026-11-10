@@ -1,0 +1,50 @@
+{
+  "name": "carbonx",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sustainability report intelligence, SDG mapping and evidence review",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server/index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "start": "node --env-file-if-exists=.env server/index.mjs --production",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "check": "node --check server/index.mjs && tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "cookie-parser": "1.4.7",
+    "csv-parse": "7.0.3",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.4",
+    "geotiff": "3.0.5",
+    "helmet": "8.3.0",
+    "js-tiktoken": "1.0.21",
+    "lucide-react": "1.70.0",
+    "mammoth": "1.13.0",
+    "multer": "2.5.0",
+    "openai": "7.54.0",
+    "pdf-parse": "2.4.5",
+    "pdfkit": "0.20.2",
+    "proj4": "2.22.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "3.10.1",
+    "tesseract.js": "7.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "prettier": "3.9.10",
+    "supertest": "7.3.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.7"
+  }
+}
