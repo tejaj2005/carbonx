@@ -1,6 +1,8 @@
 # CarbonX technology stack
 
-Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB requires DATA_GOV_IN_API_KEY. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the reserved backend migration placeholders.
+Current status update: Supabase Auth and private Storage are implemented, enabled and live verified. Six evidence files were migrated and checksum checked. PostgreSQL persistence/migration code is implemented and locally tested, but hosted database activation is blocked by TLS negotiation from this network. Official CPCB public sample mode is now live-verified: ten station records for each of eight metros, with partial coverage. An initial HTTP 429 cleared on retry. See [BACKEND_STATUS.md](BACKEND_STATUS.md) for the current configuration and next steps; older observations below are historical.
+
+Current configuration (10 November 2026): Groq is the default hosted AI provider, using GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-20b. Grok/xAI is a separate optional adapter. No local model is required. Open-Meteo and Earth Search remain keyless; the optional Copernicus Sentinel Hub adapter uses a personal OAuth Client ID/Secret. CPCB uses the official public sample mode; a personal DATA_GOV_IN_API_KEY provides broader access. See ENV_SETUP.md for active configuration and SUPABASE_SETUP.md for the active Auth/Storage configuration and remaining database import.
 
 Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
 
@@ -63,13 +65,13 @@ Once deployed and configured, the Node service handles web requests, report jobs
 
 The optional local AI adapter needs its own running Ollama host; Groq does not. Provider calls need network access and any configured free keys. Server restarts preserve SQLite data and metro due times; report processing currently uses a single-process queue and interrupted jobs need reprocessing.
 
-## Proposed Supabase architecture: not implemented yet
+## Supabase architecture and remaining database activation
 
-Supabase can replace SQLite/auth/filesystem persistence with Postgres, Auth and private Storage. This requires schema/data migration, RLS policies, identity mapping, storage adapters and regression testing. It is not achieved by adding a URL/key to the current application.
+Supabase Auth and private Storage are implemented and active. The PostgreSQL adapter and private-schema migration are implemented and locally tested; hosted record migration awaits a working database TLS connection.
 
 Lightweight metro polling can move to Supabase Cron plus authenticated Edge Functions. OCR, large PDFs, satellite raster processing and local LLM inference should remain on a Node/AI worker host because of Edge execution limits.
 
-See BACKEND_REQUIREMENTS.md for user inputs, free-tier limits and the email-last delivery plan. No Supabase project has been created or migrated, and email is not implemented in this UI cleanup.
+See BACKEND_REQUIREMENTS.md for user inputs, free-tier limits and the email-last delivery plan. The supplied Supabase project is connected for Auth and private Storage; email delivery remains skipped.
 
 ## Active hosted AI and backend preparation
 
@@ -77,7 +79,7 @@ Groq and optional xAI use the existing OpenAI-compatible HTTP client; the depend
 
 Optional Copernicus site context uses fixed CDSE OAuth/Catalog/Statistics endpoints, projected UTM bounds via proj4, 10 m daily mosaic sampling and explicit coverage rejection. The previous Earth Search/GeoTIFF implementation stays the default until OAuth credentials are supplied.
 
-See SUPABASE_SETUP.md for future PostgreSQL/Auth/Storage migration. Adding four environment values does not connect Supabase today. In-app notices persist; email is deferred.
+See BACKEND_STATUS.md for the verified Auth/Storage integration and pending PostgreSQL activation. In-app notices persist; email is skipped.
 
 Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.
 
@@ -89,3 +91,12 @@ Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall go
 - docs/INTEGRATION_VERIFICATION.md: observed results and limitations.
 
 - server/orbit.mjs: public ISS position feed, validated coordinates/time, 10-second shared cache and last-known stale fallback; React refreshes every 15 seconds. Existing SatelliteScene supplies a pausable illustrative CSS/SVG animation beside the current image.
+
+## Current backend implementation
+
+- server/db.mjs and server/sqlite.mjs: asynchronous store interface and serialized SQLite transactions.
+- server/pg-store.mjs and migrations/001_carbonx.sql: PostgreSQL pool, verified TLS, parameter binding, rollback, advisory migration lock and private RLS-enabled schema.
+- server/cloud-services.mjs: fixed-project Supabase Auth and private Storage HTTP adapters; credential errors are sanitized.
+- scripts/migrate-database.mjs and scripts/migrate-storage.mjs: preserved-source migration and verification.
+- src/SatelliteView.tsx, src/GovernmentVerification.tsx, src/ProfileSettings.tsx and src/TrendChart.tsx: shared verification, scoped government site checks, account settings and timestamp/unit-labelled charts.
+- @electric-sql/pglite is a development-only PostgreSQL validation engine, not a local AI model or the active database.

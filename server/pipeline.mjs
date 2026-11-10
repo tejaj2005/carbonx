@@ -2,11 +2,11 @@ import path from 'node:path';
 import { uuid, now } from './db.mjs';
 import { parseReport, chunkPages } from './documents.mjs';
 import { SDGS, extractBaseline, normalize, verifyClaim, lexicalSearch, cosine } from './domain.mjs';
-export function pipeline(store, config, ai) {
+export function pipeline(store, config, ai, cloud) {
   const queue = [];
   let working = false;
-  const progress = (job, stage, percent) =>
-    store.run(
+  const progress = async (job, stage, percent) =>
+    await store.run(
       'UPDATE jobs SET status=?,stage=?,progress=?,updated_at=? WHERE id=?',
       'running',
       stage,
@@ -14,15 +14,15 @@ export function pipeline(store, config, ai) {
       now(),
       job.id,
     );
-  function refresh(company) {
-    const observations = store.q('SELECT * FROM observations WHERE company_id=?', company);
-    for (const claim of store.q('SELECT * FROM claims WHERE company_id=?', company)) {
+  async function refresh(company) {
+    const observations = await store.q('SELECT * FROM observations WHERE company_id=?', company);
+    for (const claim of await store.q('SELECT * FROM claims WHERE company_id=?', company)) {
       const r = verifyClaim(claim, observations);
       const changed =
         claim.status !== r.status ||
         claim.comparison_json !== JSON.stringify(r.comparison) ||
         claim.reason_json !== JSON.stringify(r.reasons);
-      store.run(
+      await store.run(
         'UPDATE claims SET status=?,reason_json=?,comparison_json=? WHERE id=? AND company_id=?',
         r.status,
         JSON.stringify(r.reasons),
@@ -31,15 +31,15 @@ export function pipeline(store, config, ai) {
         company,
       );
       if (changed && claim.review_state !== 'unreviewed') {
-        store.run('UPDATE claims SET review_state=? WHERE id=?', 'unreviewed', claim.id);
-        store.audit(company, null, 'claim.evidence_changed', 'claim', claim.id, {
+        await store.run('UPDATE claims SET review_state=? WHERE id=?', 'unreviewed', claim.id);
+        await store.audit(company, null, 'claim.evidence_changed', 'claim', claim.id, {
           previousStatus: claim.status,
           currentStatus: r.status,
           previousDecision: claim.review_state,
           requiresNewReview: true,
         });
       }
-      const existing = store.get(
+      const existing = await store.get(
         'SELECT * FROM recommendations WHERE company_id=? AND claim_id=?',
         company,
         claim.id,
@@ -54,7 +54,7 @@ export function pipeline(store, config, ai) {
         r.reasons.join(' ') +
         ' Preserve matching units, years, facility and reporting boundary. Record reviewer rationale before closing this item.';
       if (existing && (!/^(hosted|local):/.test(String(existing.method)) || changed))
-        store.run(
+        await store.run(
           'UPDATE recommendations SET title=?,action=?,priority=?,method=?,status=? WHERE id=?',
           title,
           action,
@@ -70,7 +70,7 @@ export function pipeline(store, config, ai) {
           existing.id,
         );
       else if (!existing)
-        store.insert('recommendations', {
+        await store.insert('recommendations', {
           id: uuid('rec_'),
           company_id: company,
           claim_id: claim.id,
@@ -90,11 +90,11 @@ export function pipeline(store, config, ai) {
   async function processReport(job, report) {
     const warnings = [];
     try {
-      progress(job, 'Extracting text and tables', 10);
+      await progress(job, 'Extracting text and tables', 10);
       const parsed = await parseReport(
-        path.join(config.dataDir, 'uploads', report.stored_name),
+        await cloud.originalPath(report),
         config,
-        (stage) => progress(job, stage, 20),
+        async (stage) => await progress(job, stage, 20),
       );
       warnings.push(...parsed.warnings);
       const pages = parsed.pages.map((p) => ({ ...p, id: uuid('pg_') }));
@@ -103,9 +103,9 @@ export function pipeline(store, config, ai) {
         throw new Error(
           'Report exceeds the 5,000-passage processing limit. Split it into volumes.',
         );
-      store.transaction(() => {
+      await store.transaction(async () => {
         for (const p of pages)
-          store.insert('pages', {
+          await store.insert('pages', {
             id: p.id,
             company_id: report.company_id,
             report_id: report.id,
@@ -115,16 +115,16 @@ export function pipeline(store, config, ai) {
             ocr: p.ocr ? 1 : 0,
           });
         for (const c of chunks)
-          store.insert('chunks', { ...c, embedding: null, embedding_model: null });
+          await store.insert('chunks', { ...c, embedding: null, embedding_model: null });
       });
-      progress(job, 'Building evidence index', 35);
+      await progress(job, 'Building evidence index', 35);
       if (ai.available && ai.embeddingsAvailable) {
         try {
           for (let i = 0; i < chunks.length; i += 32) {
             const batch = chunks.slice(i, i + 32),
               vectors = await ai.embed(batch.map((c) => c.text));
             for (let j = 0; j < batch.length; j++)
-              store.run(
+              await store.run(
                 'UPDATE chunks SET embedding=?,embedding_model=? WHERE id=?',
                 JSON.stringify(vectors[j]),
                 config.embeddingModel,
@@ -137,7 +137,7 @@ export function pipeline(store, config, ai) {
           );
         }
       }
-      progress(job, 'Extracting claims and mapping SDGs', 60);
+      await progress(job, 'Extracting claims and mapping SDGs', 60);
       let claims,
         mode = 'keyword-baseline';
       if (ai.available) {
@@ -157,12 +157,12 @@ export function pipeline(store, config, ai) {
         }
       } else claims = extractBaseline(chunks, report);
       const seen = new Set();
-      store.transaction(() => {
+      await store.transaction(async () => {
         for (const c of claims) {
           if (seen.has(c.text)) continue;
           seen.add(c.text);
           const n = normalize(c.value, c.unit, c.metric);
-          store.insert('claims', {
+          await store.insert('claims', {
             id: uuid('clm_'),
             company_id: report.company_id,
             report_id: report.id,
@@ -190,9 +190,9 @@ export function pipeline(store, config, ai) {
           });
         }
       });
-      progress(job, 'Comparing historical evidence', 90);
-      refresh(report.company_id);
-      store.run(
+      await progress(job, 'Comparing historical evidence', 90);
+      await refresh(report.company_id);
+      await store.run(
         'UPDATE reports SET status=?,mode=?,page_count=?,chunk_count=?,warning=? WHERE id=?',
         parsed.needsOcr ? 'needs_ocr' : 'ready',
         mode,
@@ -201,7 +201,7 @@ export function pipeline(store, config, ai) {
         warnings.join(' '),
         report.id,
       );
-      store.run(
+      await store.run(
         'UPDATE jobs SET status=?,stage=?,progress=?,updated_at=? WHERE id=?',
         'completed',
         parsed.needsOcr ? 'Completed with unread pages' : 'Completed',
@@ -209,7 +209,7 @@ export function pipeline(store, config, ai) {
         now(),
         job.id,
       );
-      store.audit(report.company_id, null, 'report.processed', 'report', report.id, {
+      await store.audit(report.company_id, null, 'report.processed', 'report', report.id, {
         pages: pages.length,
         passages: chunks.length,
         claims: seen.size,
@@ -220,8 +220,13 @@ export function pipeline(store, config, ai) {
       const safe = String(error.message || 'Processing failed')
         .replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]')
         .slice(0, 500);
-      store.run('UPDATE reports SET status=?,warning=? WHERE id=?', 'failed', safe, report.id);
-      store.run(
+      await store.run(
+        'UPDATE reports SET status=?,warning=? WHERE id=?',
+        'failed',
+        safe,
+        report.id,
+      );
+      await store.run(
         'UPDATE jobs SET status=?,stage=?,error=?,updated_at=? WHERE id=?',
         'failed',
         'Processing failed',
@@ -243,7 +248,7 @@ export function pipeline(store, config, ai) {
       working = false;
     }
   }
-  function enqueue(report) {
+  async function enqueue(report) {
     const job = {
       id: uuid('job_'),
       company_id: report.company_id,
@@ -256,13 +261,13 @@ export function pipeline(store, config, ai) {
       created_at: now(),
       updated_at: now(),
     };
-    store.insert('jobs', job);
+    await store.insert('jobs', job);
     queue.push({ job, report });
     setImmediate(drain);
     return job;
   }
   async function retrieve(company, query, reportId = null, k = 5, useAI = true) {
-    const chunks = store.q(
+    const chunks = await store.q(
       'SELECT c.*,p.number page_number,r.name report_name,r.mime FROM chunks c JOIN pages p ON p.id=c.page_id JOIN reports r ON r.id=c.report_id WHERE c.company_id=? AND r.archived=0' +
         (reportId ? ' AND c.report_id=?' : ''),
       ...[company, ...(reportId ? [reportId] : [])],

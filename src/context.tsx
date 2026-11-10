@@ -73,7 +73,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           api('/government/overview'),
           api('/monitoring'),
         ]);
-        if (requestGeneration === generation.current) setData({ ...blank, government, monitoring });
+        if (requestGeneration === generation.current)
+          setData({ ...blank, government, monitoring, refreshedAt: new Date().toISOString() });
         return;
       }
       const keys = [
@@ -96,6 +97,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       if (requestGeneration === generation.current)
         setData({
           ...blank,
+          refreshedAt: new Date().toISOString(),
           ...Object.fromEntries(
             keys.map((k, i) => [k === 'company/overview' ? 'company' : k, values[i]]),
           ),
@@ -128,6 +130,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(t);
     };
   }, [data.jobs, refresh, toast]);
+  useEffect(() => {
+    if (!user) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [user, refresh]);
   const signIn = (x: any) => {
     generation.current++;
     setCSRF(x.csrf);

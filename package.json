@@ -18,7 +18,11 @@
     "admin:create": "node --env-file-if-exists=.env scripts/create-admin.mjs",
     "integrations:check": "node --env-file-if-exists=.env scripts/check-integrations.mjs",
     "supabase:check": "node --env-file-if-exists=.env scripts/check-supabase.mjs",
-    "ai:verify": "node --env-file-if-exists=.env scripts/check-ai-features.mjs"
+    "ai:verify": "node --env-file-if-exists=.env scripts/check-ai-features.mjs",
+    "cloud:verify": "node --env-file-if-exists=.env scripts/check-cloud-services.mjs",
+    "storage:migrate": "node --env-file-if-exists=.env scripts/migrate-storage.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate-database.mjs",
+    "backend:verify": "node --env-file-if-exists=.env scripts/verify-backend.mjs"
   },
   "dependencies": {
     "cookie-parser": "1.4.7",
@@ -45,6 +49,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

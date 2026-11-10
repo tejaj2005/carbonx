@@ -34,21 +34,21 @@ try {
     email: z.email(),
     password: z.string().min(12).max(128),
   }).parse({ name, email, password });
-  store = openDatabase(config.dataDir, { recoverJobs: false });
-  migrateGovernance(store);
-  if (store.get('SELECT id FROM users WHERE email=?', email))
+  store = await openDatabase(config.dataDir, { recoverJobs: false });
+  await migrateGovernance(store);
+  if (await store.get('SELECT id FROM users WHERE email=?', email))
     throw Error('This email already has an account. Use a new administrator email.');
   const companyId = uuid('authority_'),
     userId = uuid('usr_'),
     password_hash = await hashPassword(password);
-  store.transaction(() => {
-    store.insert('companies', {
+  await store.transaction(async () => {
+    await store.insert('companies', {
       id: companyId,
       name: 'Government Oversight',
       is_example: 0,
       created_at: now(),
     });
-    store.insert('users', {
+    await store.insert('users', {
       id: userId,
       company_id: companyId,
       name,
@@ -58,12 +58,12 @@ try {
       disabled: 0,
       created_at: now(),
     });
-    store.insert('government_admins', {
+    await store.insert('government_admins', {
       user_id: userId,
       authority: 'Government Oversight',
       demo_company_id: null,
     });
-    store.audit(companyId, userId, 'government.admin_provisioned', 'user', userId);
+    await store.audit(companyId, userId, 'government.admin_provisioned', 'user', userId);
   });
   console.log('Administrator created. Use Government login in CarbonX.');
 } catch (e) {
@@ -76,5 +76,5 @@ try {
 } finally {
   hidden = false;
   rl.close();
-  store?.close();
+  await store?.close();
 }

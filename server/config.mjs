@@ -6,6 +6,9 @@ export function readConfig(env = process.env) {
     throw Error('AI_PROVIDER must be groq, xai, ollama or openai.');
   const hostedEnabled = env.ENABLE_HOSTED_AI !== 'false';
   return {
+    databaseBackend: env.DB_BACKEND || 'sqlite',
+    authBackend: env.AUTH_BACKEND || 'local',
+    storageBackend: env.STORAGE_BACKEND || 'local',
     port: Number(env.PORT || 8765),
     host: env.HOST || '127.0.0.1',
     dataDir: path.resolve(env.DATA_DIR || '.data'),

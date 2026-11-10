@@ -1,5 +1,7 @@
 # CarbonX environment setup
 
+Current status update: Supabase Auth and private Storage are implemented, enabled and live verified. Six evidence files were migrated and checksum checked. PostgreSQL persistence/migration code is implemented and locally tested, but hosted database activation is blocked by TLS negotiation from this network. Official CPCB public sample mode is now live-verified: ten station records for each of eight metros, with partial coverage. An initial HTTP 429 cleared on retry. See [BACKEND_STATUS.md](BACKEND_STATUS.md) for the current configuration and next steps; older observations below are historical.
+
 The root .env is ignored by Git and Docker. .env.example contains blank placeholders only. The supplied credentials are now configured locally. For deployment, replace any credential shared in chat with a fresh value in .env.
 
 ## AI
@@ -36,7 +38,7 @@ ISS position is an orbital coordinate feed, not imagery or a company-location va
 
 ## Supabase
 
-Supabase URL, server key and database connection are configured. HTTPS Data API/Auth health checks pass; PostgreSQL session-pooler connectivity times out, so database authentication remains unverified. See SUPABASE_SETUP.md. Application storage still uses SQLite. Email is intentionally deferred.
+Supabase URL, server key and database connection are configured. HTTPS Data API/Auth health checks pass; PostgreSQL session-pooler connectivity times out, so database authentication remains unverified. See SUPABASE_SETUP.md. Application records still use SQLite; authentication and private evidence storage now use Supabase. Email is intentionally deferred.
 
 ## Run
 

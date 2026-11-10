@@ -7,13 +7,13 @@ const counts = (rows, key) =>
   Object.fromEntries(
     [...new Set(rows.map((r) => r[key]))].map((k) => [k, rows.filter((r) => r[key] === k).length]),
   );
-export function companyStatusReport(store, company, registry, audience) {
+export async function companyStatusReport(store, company, registry, audience) {
   const id = company.id;
-  const reports = store.q(
+  const reports = await store.q(
     'SELECT id,name,year,boundary,original_name,status,mode,page_count,chunk_count,warning,archived,created_at FROM reports WHERE company_id=? ORDER BY created_at DESC',
     id,
   );
-  const claims = exportRows(store, id).map(
+  const claims = (await exportRows(store, id)).map(
     ({
       id,
       report_id,
@@ -54,46 +54,49 @@ export function companyStatusReport(store, company, registry, audience) {
       comparison: JSON.parse(comparison_json),
     }),
   );
-  const submissions = store.q(
+  const submissions = await store.q(
     'SELECT id,text,year,source,status,review_note,created_at,updated_at FROM submissions WHERE company_id=? ORDER BY created_at DESC',
     id,
   );
-  const actions = store.q(
+  const actions = await store.q(
     'SELECT id,type,note,public_note,status,created_at,updated_at FROM oversight_actions WHERE company_id=? ORDER BY created_at DESC',
     id,
   );
-  const observations = store.q(
+  const observations = await store.q(
     'SELECT id,facility_id,metric,year,value,unit,boundary,source,created_at FROM observations WHERE company_id=? ORDER BY year DESC',
     id,
   );
-  const readings = store.q(
+  const readings = await store.q(
     'SELECT id,facility_id,metric,value,unit,recorded_at,source FROM meter_readings WHERE company_id=? ORDER BY recorded_at DESC',
     id,
   );
-  const samples = store.q(
+  const samples = await store.q(
     'SELECT id,facility_id,metric,value,unit,period_start,period_end,measurement_basis,quality,source_kind,source_reference FROM emission_samples WHERE company_id=? ORDER BY period_end DESC',
     id,
   );
-  const rules = store.q(
+  const rules = await store.q(
     'SELECT id,facility_id,metric,threshold,unit,window_minutes,max_age_minutes,measurement_basis,source_reference,active FROM emission_rules WHERE company_id=?',
     id,
   );
-  const alerts = store
-    .q(
+  const alerts = (
+    await store.q(
       'SELECT id,kind,title,message,status,created_at,updated_at,payload_json FROM monitoring_alerts WHERE company_id=? ORDER BY created_at DESC',
       id,
     )
-    .map(({ payload_json, ...row }) => ({ ...row, evidence: JSON.parse(payload_json) }));
-  const reviews = store.q(
+  ).map(({ payload_json, ...row }) => ({ ...row, evidence: JSON.parse(payload_json) }));
+  const reviews = await store.q(
     'SELECT id,claim_id,decision,rationale,created_at FROM reviews WHERE company_id=? ORDER BY created_at DESC',
     id,
   );
-  const recommendations = store.q(
+  const recommendations = await store.q(
     'SELECT id,claim_id,title,action,priority,status,created_at FROM recommendations WHERE company_id=? ORDER BY created_at DESC',
     id,
   );
   const facilityNames = new Map(
-    store.q('SELECT id,name FROM facilities WHERE company_id=?', id).map((f) => [f.id, f.name]),
+    (await store.q('SELECT id,name FROM facilities WHERE company_id=?', id)).map((f) => [
+      f.id,
+      f.name,
+    ]),
   );
   for (const rows of [observations, readings, samples, rules])
     for (const row of rows) row.facility_name = facilityNames.get(row.facility_id) || null;
@@ -138,36 +141,45 @@ export function companyStatusReport(store, company, registry, audience) {
     recommendations,
   };
 }
-export function oversightStatusReport(store, companies, authority) {
-  const rows = companies.map((c) => {
-    const submissions = store.q('SELECT status FROM submissions WHERE company_id=?', c.id);
-    const claims = store.q('SELECT status,review_state FROM claims WHERE company_id=?', c.id);
-    return {
-      id: c.id,
-      name: c.name,
-      is_example: Boolean(c.is_example),
-      licence_number: c.licence_number,
-      licence_status: c.licence_status,
-      public_visible: Boolean(c.public_visible),
-      active_reports: c.report_count,
-      pending_submissions: c.submission_count,
-      accepted_submissions: submissions.filter((s) => s.status === 'accepted').length,
-      rejected_submissions: submissions.filter((s) => s.status === 'rejected').length,
-      extracted_claims: claims.length,
-      supported_claims: claims.filter((x) => x.status === 'supported').length,
-      claims_needing_evidence_or_review: claims.filter((x) => x.status !== 'supported').length,
-      human_reviewed_claims: claims.filter((x) => x.review_state !== 'unreviewed').length,
-      open_cases: store.get(
-        "SELECT COUNT(*) n FROM oversight_actions WHERE company_id=? AND status='open'",
+export async function oversightStatusReport(store, companies, authority) {
+  const rows = await Promise.all(
+    companies.map(async (c) => {
+      const submissions = await store.q('SELECT status FROM submissions WHERE company_id=?', c.id);
+      const claims = await store.q(
+        'SELECT status,review_state FROM claims WHERE company_id=?',
         c.id,
-      ).n,
-      open_alerts: store.get(
-        "SELECT COUNT(*) n FROM monitoring_alerts WHERE company_id=? AND status='open'",
-        c.id,
-      ).n,
-      updated_at: c.updated_at,
-    };
-  });
+      );
+      return {
+        id: c.id,
+        name: c.name,
+        is_example: Boolean(c.is_example),
+        licence_number: c.licence_number,
+        licence_status: c.licence_status,
+        public_visible: Boolean(c.public_visible),
+        active_reports: c.report_count,
+        pending_submissions: c.submission_count,
+        accepted_submissions: submissions.filter((s) => s.status === 'accepted').length,
+        rejected_submissions: submissions.filter((s) => s.status === 'rejected').length,
+        extracted_claims: claims.length,
+        supported_claims: claims.filter((x) => x.status === 'supported').length,
+        claims_needing_evidence_or_review: claims.filter((x) => x.status !== 'supported').length,
+        human_reviewed_claims: claims.filter((x) => x.review_state !== 'unreviewed').length,
+        open_cases: (
+          await store.get(
+            "SELECT COUNT(*) n FROM oversight_actions WHERE company_id=? AND status='open'",
+            c.id,
+          )
+        ).n,
+        open_alerts: (
+          await store.get(
+            "SELECT COUNT(*) n FROM monitoring_alerts WHERE company_id=? AND status='open'",
+            c.id,
+          )
+        ).n,
+        updated_at: c.updated_at,
+      };
+    }),
+  );
   return {
     title: 'Government oversight status report',
     audience: authority,
@@ -322,9 +334,8 @@ export function sendStatusReport(res, report, format, filename) {
   }
   doc.end();
 }
-
-export function evidenceStatusReport(store, company, reportId, audience) {
-  const claims = exportRows(store, company.id, reportId).map(
+export async function evidenceStatusReport(store, company, reportId, audience) {
+  const claims = (await exportRows(store, company.id, reportId)).map(
     ({ sdgs_json, reason_json, comparison_json, ...row }) => ({
       ...row,
       sdgs: JSON.parse(sdgs_json),
@@ -332,7 +343,7 @@ export function evidenceStatusReport(store, company, reportId, audience) {
       comparison: JSON.parse(comparison_json),
     }),
   );
-  const reports = store.q(
+  const reports = await store.q(
     'SELECT id,name,year,boundary,status,mode,archived,created_at FROM reports WHERE company_id=?' +
       (reportId ? ' AND id=?' : ''),
     company.id,

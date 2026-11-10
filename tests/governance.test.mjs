@@ -22,7 +22,7 @@ const config = {
   testing: true,
   production: false,
 };
-const system = createApp(config),
+const system = await createApp(config),
   app = system.app;
 async function register(name = 'Portal Test') {
   const client = request.agent(app),
@@ -49,7 +49,7 @@ async function waitIdle() {
 test('government, company and public boundaries', async (t) => {
   const company = await register('Private Company'),
     authority = await register('Authority Test');
-  system.store.insert('government_admins', {
+  await system.store.insert('government_admins', {
     user_id: authority.user.id,
     authority: 'Government Oversight',
     demo_company_id: null,
@@ -124,7 +124,8 @@ test('government, company and public boundaries', async (t) => {
         });
       assert.equal(r.status, 200);
       assert.equal(
-        system.store.get('SELECT COUNT(*) n FROM oversight_actions WHERE company_id=?', id).n,
+        (await system.store.get('SELECT COUNT(*) n FROM oversight_actions WHERE company_id=?', id))
+          .n,
         1,
       );
       assert.equal(
@@ -169,7 +170,7 @@ test('government, company and public boundaries', async (t) => {
         });
       assert.equal(r.status, 200);
       assert.ok(
-        system.store.get(
+        await system.store.get(
           "SELECT id FROM audit WHERE company_id=? AND action='licence.updated'",
           id,
         ),
@@ -181,7 +182,7 @@ test('government, company and public boundaries', async (t) => {
     async () => {
       let publicData = (await request(app).get('/api/public/overview')).body;
       assert.ok(!publicData.companies.some((c) => c.id === company.user.companyId));
-      system.store.insert('observations', {
+      await system.store.insert('observations', {
         id: uuid('obs_'),
         company_id: company.user.companyId,
         facility_id: null,
@@ -309,7 +310,10 @@ test('government, company and public boundaries', async (t) => {
         role: 'analyst',
       });
     assert.equal(r.status, 201);
-    assert.equal(system.store.get('SELECT role FROM users WHERE id=?', r.body.id).role, 'analyst');
+    assert.equal(
+      (await system.store.get('SELECT role FROM users WHERE id=?', r.body.id)).role,
+      'analyst',
+    );
   });
   await t.test(
     'government demo cannot access any other company or create unrestricted accounts',
@@ -388,7 +392,7 @@ test('government, company and public boundaries', async (t) => {
       assert.equal(r.body.user.companyId, id);
       const governmentToken = r.body.csrf,
         governmentId = r.body.user.id;
-      system.store.insert('notifications', {
+      await system.store.insert('notifications', {
         id: uuid('notice_'),
         user_id: governmentId,
         event_key: 'test-demo-handoff',
@@ -423,12 +427,12 @@ test('government, company and public boundaries', async (t) => {
     },
   );
   await t.test('revoking authority takes effect on existing sessions', async () => {
-    system.store.run('DELETE FROM government_admins WHERE user_id=?', authority.user.id);
+    await system.store.run('DELETE FROM government_admins WHERE user_id=?', authority.user.id);
     assert.equal((await authority.client.get('/api/government/overview')).status, 403);
   });
-  await t.test('a provisioning database connection does not interrupt live jobs', () => {
+  await t.test('a provisioning database connection does not interrupt live jobs', async () => {
     const id = uuid('job_');
-    system.store.insert('jobs', {
+    await system.store.insert('jobs', {
       id,
       company_id: company.user.companyId,
       report_id: null,
@@ -440,13 +444,16 @@ test('government, company and public boundaries', async (t) => {
       created_at: now(),
       updated_at: now(),
     });
-    const second = openDatabase(dataDir, { recoverJobs: false });
-    second.close();
-    assert.equal(system.store.get('SELECT status FROM jobs WHERE id=?', id).status, 'running');
+    const second = await openDatabase(dataDir, { recoverJobs: false });
+    await second.close();
+    assert.equal(
+      (await system.store.get('SELECT status FROM jobs WHERE id=?', id)).status,
+      'running',
+    );
   });
 });
-test.after(() => {
-  system.store.close();
+test.after(async () => {
+  await system.store.close();
   assert.ok(path.resolve(dataDir).startsWith(local + path.sep));
   fs.rmSync(dataDir, { recursive: true, force: true });
 });

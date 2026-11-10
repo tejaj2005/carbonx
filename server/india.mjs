@@ -178,6 +178,15 @@ export async function fetchMetroModel(city, fetcher = fetchJson, clock = Date.no
   )
     throw Error('Provider air-quality timestamp is invalid.');
   return {
+    trend: air.data?.hourly?.time
+      ? air.data.hourly.time
+          .map((time, i) => ({
+            time: new Date(time * 1000).toISOString(),
+            pm25: Number.isFinite(air.data.hourly.pm2_5?.[i]) ? air.data.hourly.pm2_5[i] : null,
+          }))
+          .filter((p) => Date.parse(p.time) < clock)
+          .slice(-24)
+      : [],
     kind: 'modelled_context',
     status: results.every((r) => r.status === 'available')
       ? 'available'
@@ -218,6 +227,16 @@ export async function fetchMetroModel(city, fetcher = fetchJson, clock = Date.no
       'Actual provider forecast output. This is regional modelled context, not a live local sensor or a company-emissions measurement.',
   };
 }
+// Public documentation sample key, deliberately published by data.gov.in; 10-record preview only.
+export const CPCB_SAMPLE_KEY = '579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b';
+export function cpcbAccess(env = process.env) {
+  const personal = env.DATA_GOV_IN_API_KEY?.trim();
+  return env.CPCB_ACCESS_MODE === 'disabled'
+    ? { key: null, mode: 'disabled' }
+    : personal
+      ? { key: personal, mode: 'personal' }
+      : { key: CPCB_SAMPLE_KEY, mode: 'sample' };
+}
 export async function fetchCpcbStations(city, key, fetcher = fetchJson) {
   if (!key)
     return {
@@ -227,14 +246,15 @@ export async function fetchCpcbStations(city, key, fetcher = fetchJson) {
       source: INDIA_SOURCES.station,
       note: 'A free personal data.gov.in API key is required for official station summaries.',
     };
+  const sample = key === CPCB_SAMPLE_KEY;
   const records = [];
   let total = 0,
     complete = false;
-  for (let offset = 0; offset < 5000; offset += 500) {
+  for (let offset = 0; offset < (sample ? 10 : 5000);) {
     const params = new URLSearchParams({
       'api-key': key,
       format: 'json',
-      limit: '500',
+      limit: sample ? '10' : '500',
       offset: String(offset),
       'filters[city]': city.cpcbCity,
     });
@@ -262,6 +282,8 @@ export async function fetchCpcbStations(city, key, fetcher = fetchJson) {
         city: String(r.city || city.name),
         state: String(r.state || city.state),
         pollutant: String(r.pollutant_id || 'Unknown'),
+        latitude: numeric(r.latitude),
+        longitude: numeric(r.longitude),
         average: numeric(avg),
         minimum: numeric(min),
         maximum: numeric(max),
@@ -275,8 +297,11 @@ export async function fetchCpcbStations(city, key, fetcher = fetchJson) {
       complete = true;
       break;
     }
+    offset += data.records.length;
   }
   return {
+    accessMode: sample ? 'public_sample' : 'personal_key',
+    recordLimit: sample ? 10 : 5000,
     kind: 'station_summary',
     status: records.length ? (complete ? 'available' : 'partial') : 'no_records',
     retrievedAt: new Date().toISOString(),
@@ -285,7 +310,9 @@ export async function fetchCpcbStations(city, key, fetcher = fetchJson) {
     complete,
     source: INDIA_SOURCES.station,
     provider: 'CPCB via data.gov.in',
-    note: 'Provider-reported pollutant summaries. Units and averaging periods remain unknown unless explicitly supplied by the provider; no regulatory comparison is made from unverified fields.',
+    note:
+      (sample ? 'Public sample preview: at most 10 records; coverage is limited. ' : '') +
+      'Provider-reported pollutant summaries. Units and averaging periods remain unknown unless explicitly supplied by the provider; no regulatory comparison is made from unverified fields.',
   };
 }
 export function assessEmission(rule, sample, clock = Date.now()) {

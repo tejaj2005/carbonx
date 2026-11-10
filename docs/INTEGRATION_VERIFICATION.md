@@ -1,5 +1,7 @@
 # Live integration verification — 10 November 2026
 
+Current status update: Supabase Auth and private Storage are implemented, enabled and live verified. Six evidence files were migrated and checksum checked. PostgreSQL persistence/migration code is implemented and locally tested, but hosted database activation is blocked by TLS negotiation from this network. Official CPCB public sample mode is now live-verified: ten station records for each of eight metros, with partial coverage. An initial HTTP 429 cleared on retry. See [BACKEND_STATUS.md](BACKEND_STATUS.md) for the current configuration and next steps; older observations below are historical.
+
 Checks ran from the CarbonX checkout. Secret values are excluded from this record.
 
 | Integration                       | Observed result                                   | What this verifies                                                                                   |
@@ -38,3 +40,5 @@ Final local validation: 84 automated tests passed; production build, formatting 
 Additional review display: live ISS coordinates verified from Where the ISS at? (HTTP 200); animation and timestamped imagery are together on Site verification. Animation is illustrative, with pause/reduced-motion support; orbital data refreshes every 15 seconds.
 
 Geolocation display: bundled Natural Earth coastline map plots the current ISS position and selected saved facility coordinates on the existing page. No map key or external tile request is used.
+
+Final current CPCB evidence: eight successful metro fetches, ten official records per metro, matching city filters; record timestamp 2026-11-10T15:30:00Z. Eight model series each contain 24 hourly history points. Current source data is not a claim of complete station coverage or individual factory emissions.

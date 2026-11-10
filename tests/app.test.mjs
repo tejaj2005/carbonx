@@ -23,7 +23,7 @@ const config = {
   testing: true,
   production: false,
 };
-const system = createApp(config),
+const system = await createApp(config),
   app = system.app;
 let owner, csrf, claims, reportId, other, otherCsrf;
 async function idle() {
@@ -253,7 +253,9 @@ test('full company workflow and isolation', async (t) => {
     'evidence changes invalidate decisions and reopen completed recommendations with honest provenance',
     async () => {
       const c = claims.find((x) => x.metric === 'water_consumption');
-      const before = system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id).n;
+      const before = (
+        await system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id)
+      ).n;
       assert.equal(
         (
           await owner
@@ -266,32 +268,33 @@ test('full company workflow and isolation', async (t) => {
         ).status,
         200,
       );
-      system.store.run(
+      await system.store.run(
         'UPDATE recommendations SET method=?,status=?,title=? WHERE claim_id=?',
         'hosted:test-model',
         'done',
         'Previously reviewed action',
         c.id,
       );
-      system.work.refresh(c.company_id);
+      await system.work.refresh(c.company_id);
       assert.equal(
-        system.store.get('SELECT method FROM recommendations WHERE claim_id=?', c.id).method,
+        (await system.store.get('SELECT method FROM recommendations WHERE claim_id=?', c.id))
+          .method,
         'hosted:test-model',
       );
-      system.store.run(
+      await system.store.run(
         'UPDATE observations SET value=900,normalized_value=900 WHERE company_id=? AND metric=? AND year=2024',
         c.company_id,
         'water_consumption',
       );
-      system.work.refresh(c.company_id);
-      const updated = system.store.get('SELECT * FROM claims WHERE id=?', c.id),
-        action = system.store.get('SELECT * FROM recommendations WHERE claim_id=?', c.id);
+      await system.work.refresh(c.company_id);
+      const updated = await system.store.get('SELECT * FROM claims WHERE id=?', c.id),
+        action = await system.store.get('SELECT * FROM recommendations WHERE claim_id=?', c.id);
       assert.equal(updated.status, 'needs_review');
       assert.equal(updated.review_state, 'unreviewed');
       assert.equal(action.method, 'rules');
       assert.equal(action.status, 'open');
       assert.equal(
-        system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id).n,
+        (await system.store.get('SELECT COUNT(*) n FROM reviews WHERE claim_id=?', c.id)).n,
         before + 1,
       );
     },
@@ -322,15 +325,14 @@ test('full company workflow and isolation', async (t) => {
     );
   });
 });
-test.after(() => {
-  system.store.close();
+test.after(async () => {
+  await system.store.close();
   assert.ok(path.resolve(dataDir).startsWith(local + path.sep));
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
-
 test('environment reads remain available during polling and job limits return JSON', async () => {
   const folder = fs.mkdtempSync(path.join(local, 'test-limits-'));
-  const limited = createApp({ ...config, dataDir: folder, testing: false });
+  const limited = await createApp({ ...config, dataDir: folder, testing: false });
   try {
     const client = request.agent(limited.app);
     const registration = await client.post('/api/auth/register').send({
@@ -351,7 +353,7 @@ test('environment reads remain available during polling and job limits return JS
     assert.ok(response.body.error.includes('Too many provider jobs'));
     assert.equal((await client.get('/api/environment')).status, 200);
   } finally {
-    limited.store.close();
+    await limited.store.close();
     assert.ok(path.resolve(folder).startsWith(local + path.sep));
     fs.rmSync(folder, { recursive: true, force: true });
   }

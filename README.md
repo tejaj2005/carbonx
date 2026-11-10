@@ -1,5 +1,7 @@
 # CarbonX
 
+Latest backend configuration, live test evidence and remaining network/deployment requirements: [docs/BACKEND_STATUS.md](docs/BACKEND_STATUS.md).
+
 Sustainability report intelligence with source citations, SDG mapping, historical comparison and human review.
 
 CarbonX is a React/TypeScript application with an Express API and persistent SQLite storage. It replaces the earlier static presentation and does not depend on n8n. The old n8n Cloud workspace is not contacted or recovered.
@@ -81,7 +83,7 @@ Groq supports structured report extraction, cited evidence answers, action plans
 
 Run npm.cmd run integrations:check for connection statuses. Add -- --ai only for an explicit small synthetic inference test. No live Groq inference has been verified while the key is blank.
 
-See [simple environment setup](docs/ENV_SETUP.md). Supabase migration and email remain separate later work. Optional legacy providers are not selected by the default configuration.
+See [simple environment setup](docs/ENV_SETUP.md). Auth and private Storage are active; record migration awaits database connectivity, and email is skipped. Optional legacy providers are not selected by the default configuration.
 
 ## India metropolitan monitoring
 
@@ -152,6 +154,6 @@ The UI simulation does not create monitoring observations or send email. Backend
 
 The [UI review record](docs/UI_REVIEW.md) lists route, control, mobile and provider checks performed for the presentation cleanup.
 
-See docs/ENV_SETUP.md for Groq and optional Copernicus OAuth setup, docs/SUPABASE_SETUP.md for the four reserved backend values, and docs/DEMO_DATA.md for the editable synthetic/reference source files. Supabase is not connected by adding placeholders; SQLite remains active. Email is deferred.
+See docs/ENV_SETUP.md for Groq and optional Copernicus OAuth setup, docs/SUPABASE_SETUP.md for the active backend configuration, and docs/DEMO_DATA.md for the editable synthetic/reference source files. Supabase is not connected by adding placeholders; SQLite metadata remains active; evidence uses private cloud Storage and Auth uses Supabase. Email is skipped.
 
 Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.

@@ -1,0 +1,75 @@
+# CarbonX backend status — 10 November 2026
+
+## Active configuration
+
+| Area                      | Actual state                                                                                                                                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication            | Supabase Auth enabled. Existing real accounts link on successful password sign-in; example accounts remain synthetic local identities.                                                                                                                                                |
+| Sessions and roles        | Opaque HTTP-only CarbonX sessions. Roles and Government Oversight scope remain server-controlled. Linked cloud account access is rechecked at most every 60 seconds.                                                                                                                  |
+| Evidence files            | Supabase private bucket carbonx-evidence enabled. Six existing unique files migrated and checksum verified; local originals preserved.                                                                                                                                                |
+| Application records       | SQLite remains active because PostgreSQL TLS negotiation cannot complete from this machine.                                                                                                                                                                                           |
+| PostgreSQL adapter        | Implemented with asynchronous queries, pooled connections, verified TLS, transactions and checksum-tracked migrations. Migration and rollback tested on a real local PostgreSQL engine (PGlite). Not applied to the hosted database.                                                  |
+| CPCB stations             | Official public sample mode, maximum ten records per request. Live requests succeeded for all eight metros: ten records per city, with reported station cities matching their filters. Coverage remains partial. Initial HTTP 429 failures are handled with stale/unavailable states. |
+| Other environmental feeds | Open-Meteo/CAMS, EUMETSAT India imagery and live ISS orbital coordinates. These are distinct contextual sources, not factory emissions telemetry.                                                                                                                                     |
+| Notifications             | Persistent in-app notifications. Email delivery remains skipped at the user's request.                                                                                                                                                                                                |
+
+## What was verified live
+
+The temporary account and synthetic file were removed after each check; no notification email was sent.
+
+- Supabase admin account creation, password sign-in, identity check and password update.
+- Private bucket metadata, upload and checksum-verified download.
+- Through the actual CarbonX HTTP API: cloud sign-in, session identity, profile update, upload, extraction/processing and protected cloud download.
+- Six existing private evidence files uploaded and read back with matching SHA-256.
+- Earlier live Groq checks covered extraction, cited answers, evidence actions and monitoring explanations.
+
+Private evidence is served through existing company/government authorization checks. Public views receive published summaries and global environmental feeds, not private files, account directories or exact company-site coordinates.
+
+## PostgreSQL connection blocker
+
+The saved session-pooler URI matches the dashboard's exact project, host, user and port. TCP connects, but the PostgreSQL SSL negotiation does not complete on 5432 or 6543. Direct IPv6 access also times out. Direct-TLS negotiation was tested with certificate verification enabled and the peer reset the connection. The database password has therefore not been authenticated.
+
+Resolve the network path or run the service on a host that can reach the official Supabase database endpoint. Do not disable certificate validation or reset the password merely because of this timeout.
+
+## Complete the record migration once reachable
+
+1. Back up the private .data directory and keep existing local evidence originals.
+2. Run npm.cmd run supabase:check; database/TLS must succeed.
+3. Finish active report jobs and stop CarbonX.
+4. Run npm.cmd run db:migrate. It creates the private carbonx schema, refuses a nonempty target, imports records in foreign-key order in one transaction, verifies row counts and preserves an ignored local backup. Public project tables are not changed.
+5. Set DB_BACKEND=postgres in ignored .env, leaving AUTH_BACKEND=supabase and STORAGE_BACKEND=supabase.
+6. Start CarbonX and verify company isolation, government scope, exports, report processing and monitoring.
+7. If verification fails, stop the service and return DB_BACKEND=sqlite. Local metadata and originals were preserved.
+
+Do not edit an already-applied migration; its checksum is enforced. Application tables have RLS enabled and anonymous/authenticated browser roles receive no direct schema/table grants. Server-side role checks control access.
+
+## Public registration and deployment requirements
+
+Cloud self-registration follows the project's Supabase email-confirmation policy. Supabase's Auth Site URL/redirect allowlist must match the deployed CarbonX URL; reliable confirmation delivery depends on its Auth email configuration. No emission-notification SMTP service was enabled. Government-provisioned account creation and existing-account linking use the current administrator workflows.
+
+MFA-enabled cloud accounts are rejected rather than silently bypassing their second factor; an MFA UI remains future work. The current report queue runs in one Node process and interrupted work requires reprocessing. Production deployment also needs HTTPS, secure cookies, a persistent host/worker, backups, quotas and operational checks. This installation is not production ready.
+
+## Repeatable checks
+
+| Command                        | Purpose                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| npm.cmd test                   | Isolation, ownership, persistence, units, exports, credentials and provider behavior |
+| npm.cmd run build              | TypeScript and production frontend                                                   |
+| npm.cmd run integrations:check | Public environmental endpoints and model access                                      |
+| npm.cmd run ai:verify          | Four synthetic live Groq tasks                                                       |
+| npm.cmd run supabase:check     | Read-only database/TLS and HTTPS checks                                              |
+| npm.cmd run cloud:verify       | Live temporary Auth/private-object checks with cleanup                               |
+| npm.cmd run backend:verify     | Live isolated CarbonX HTTP workflow using cloud Auth/Storage                         |
+| npm.cmd run storage:migrate    | Copy and verify local originals to the private bucket                                |
+
+Keep .env, .data, backups and .local out of Git and exported reports.
+
+## Home page and review navigation
+
+The default home page and #home alias show Public, Company and Government entry cards. Purpose-specific shortcuts remember the requested role page through login. Existing matching sessions redirect automatically; normal login still authenticates the account. Quick demo logins are explicitly labelled and use isolated synthetic records, reusing the existing example company when switching roles. Public air-quality and satellite sections stay on the home page, and government verification remains inside Monitoring. No additional feature subpages were created.
+
+## Final validation evidence
+
+93 automated tests passed. Production TypeScript/build, formatting and Git whitespace checks passed. Browser inspection verified company/government demo entry, automatic redirect for an existing company session, home verification shortcuts, anonymous public access, government facility refresh, profiles, chart units and IST time axes. Desktop (1280px) and narrow (397px) layouts had no horizontal overflow. The government refresh returned real Open-Meteo context for the selected site; public imagery and live orbital coordinates loaded without a login.
+
+The working preview is http://127.0.0.1:8765/#home. Existing Git credentials belong to teja-rp and GitHub CLI has no authenticated account; publishing to tejaj2005/carbonx still requires repository write access. No credentials are embedded in tracked source; the deliberately public official CPCB sample key is documented separately.

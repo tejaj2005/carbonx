@@ -54,8 +54,8 @@ function multiLabel(expected, predicted) {
     f1: precision + recall ? (2 * precision * recall) / (precision + recall) : 0,
   };
 }
-export function evaluate(store, company) {
-  const cases = store.q(
+export async function evaluate(store, company) {
+  const cases = await store.q(
     'SELECT e.*,c.text,c.sdgs_json,c.status FROM evaluation_cases e JOIN claims c ON c.id=e.claim_id WHERE e.company_id=? AND e.split=?',
     company,
     'test',
@@ -65,7 +65,7 @@ export function evaluate(store, company) {
     e.status = 400;
     throw e;
   }
-  const chunks = store.q('SELECT id,text FROM chunks WHERE company_id=?', company);
+  const chunks = await store.q('SELECT id,text FROM chunks WHERE company_id=?', company);
   const expected = cases.map((c) => JSON.parse(c.expected_sdgs)),
     baseline = cases.map((c) => baselineMapping(c.text)),
     pipeline = cases.map((c) => JSON.parse(c.sdgs_json));

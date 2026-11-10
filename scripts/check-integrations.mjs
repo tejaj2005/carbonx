@@ -3,7 +3,7 @@ import { satelliteTools } from '../server/live-satellite.mjs';
 import { config } from '../server/config.mjs';
 import { providers } from '../server/providers.mjs';
 import { fetchJson } from '../server/environment.mjs';
-import { INDIA_METROS, fetchMetroModel, fetchCpcbStations } from '../server/india.mjs';
+import { INDIA_METROS, fetchMetroModel, fetchCpcbStations, cpcbAccess } from '../server/india.mjs';
 import { aiTools } from '../server/ai.mjs';
 import { satelliteProvider, sentinelHubTools } from '../server/sentinelhub.mjs';
 const groq = config.aiProvider === 'groq',
@@ -12,10 +12,10 @@ const key = groq ? process.env.GROQ_API_KEY : xai ? process.env.XAI_API_KEY : nu
 const results = await Promise.allSettled([
   fetchMetroModel(INDIA_METROS.find((c) => c.id === 'hyderabad')),
   fetchJson(providers.satellite + '/collections/sentinel-2-l2a'),
-  process.env.DATA_GOV_IN_API_KEY
+  cpcbAccess().key
     ? fetchCpcbStations(
         INDIA_METROS.find((c) => c.id === 'hyderabad'),
-        process.env.DATA_GOV_IN_API_KEY,
+        cpcbAccess().key,
       )
     : Promise.resolve(null),
   key
@@ -53,7 +53,7 @@ const rows = [
   },
   {
     service: 'Official CPCB stations',
-    status: !process.env.DATA_GOV_IN_API_KEY
+    status: !cpcbAccess().key
       ? 'key required'
       : station.status === 'fulfilled'
         ? station.value.status

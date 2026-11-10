@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { csvCell } from './domain.mjs';
-export function exportRows(store, company, reportId) {
-  return store.q(
+export async function exportRows(store, company, reportId) {
+  return await store.q(
     'SELECT c.*,r.name report_name,p.number page_number FROM claims c JOIN reports r ON r.id=c.report_id JOIN chunks k ON k.id=c.chunk_id JOIN pages p ON p.id=k.page_id WHERE c.company_id=?' +
       (reportId ? ' AND c.report_id=?' : '') +
       ' ORDER BY r.created_at DESC,p.number',

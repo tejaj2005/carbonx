@@ -1,3 +1,6 @@
+import { HomePortals } from './HomePortals';
+import { takeDestination } from './role-routing';
+import { SatelliteVerification } from './SatelliteView';
 import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
@@ -24,6 +27,9 @@ import { api, mutate, date, number, label, type Item } from './api';
 import { useWorkspace } from './context';
 import { Brand, Badge, Empty, Modal, Panel, Field } from './components';
 import { ReviewJourney, ReviewExperience, SatelliteScene, AirScene } from './VisualJourney';
+const PublicMonitoringSummary = React.lazy(() =>
+  import('./Monitoring').then((m) => ({ default: m.PublicMonitoringSummary })),
+);
 const metricNames: Record<string, string> = {
   water_consumption: 'Water consumption',
   water_withdrawal: 'Water withdrawal',
@@ -48,6 +54,23 @@ function PublicCompany({ company, onClose }: { company: Item; onClose: () => voi
         <small>{company.licence.number || 'Licence pending assignment'}</small>
       </div>
       <p>{company.description || 'Published company sustainability summary.'}</p>
+      <Panel title="Published claim review status">
+        <div className="public-metrics">
+          {company.submissions.map((row: Item) => (
+            <article key={row.status}>
+              <Badge value={row.status} />
+              <strong>
+                {row.n}
+                <small> claims</small>
+              </strong>
+            </article>
+          ))}
+        </div>
+        <p className="fine-print">
+          These are recorded review statuses. Source documents and private reviewer notes remain
+          protected.
+        </p>
+      </Panel>
       <h3>Latest reported usage</h3>
       <p className="muted">
         Each record retains its own facility, unit and reporting year. Values are not added across
@@ -176,15 +199,28 @@ export function PublicPortal() {
     const t = setInterval(() => void refresh(), 30000);
     return () => clearInterval(t);
   }, []);
-  const companies = (data?.companies || []).filter(
-      (c: Item) => (examples || !c.isExample) && c.name.toLowerCase().includes(query.toLowerCase()),
-    ),
+  const exampleNames = new Set<string>();
+  const ordered = [...(data?.companies || [])].sort(
+    (a: Item, b: Item) => Number(b.id === user?.companyId) - Number(a.id === user?.companyId),
+  );
+  const companies = ordered
+      .filter(
+        (c: Item) =>
+          (examples || !c.isExample) && c.name.toLowerCase().includes(query.toLowerCase()),
+      )
+      .filter((c: Item) => {
+        if (!c.isExample) return true;
+        const key = c.name.toLowerCase();
+        if (exampleNames.has(key)) return false;
+        exampleNames.add(key);
+        return true;
+      }),
     current = data?.companies.find((c: Item) => c.id === selected),
-    hasEnvironment = data?.companies.some((c: Item) => c.environmental.length);
+    hasEnvironment = companies.some((c: Item) => c.environmental.length);
   return (
     <div className="public-site">
       <header className="public-nav">
-        <a href="#public" aria-label="CarbonX public home">
+        <a href="#home" aria-label="CarbonX home">
           <Brand />
         </a>
         <nav>
@@ -218,8 +254,11 @@ export function PublicPortal() {
               <span className="status-dot" />
               CARBONX PUBLIC OBSERVATORY
             </span>
-            <h1>Company records</h1>
-            <p>View published company reports, resource use and review status.</p>
+            <h1>India’s sustainability dashboard.</h1>
+            <p>
+              Explore live environmental context, company claims and Government Oversight from one
+              place.
+            </p>
             <div className="button-row">
               <a
                 className="button primary"
@@ -237,16 +276,17 @@ export function PublicPortal() {
             </div>
           </div>
         </section>
+        <HomePortals />
         <section className="public-stat-strip">
           <div>
             <Building2 size={19} />
-            <strong>{data?.companies.length ?? '—'}</strong>
-            <span>Published companies</span>
+            <strong>{data ? companies.length : '—'}</strong>
+            <span>Published companies shown</span>
           </div>
           <div>
             <ShieldCheck size={19} />
             <strong>
-              {data?.companies.filter((c: Item) => c.licence.status === 'active').length ?? '—'}
+              {data ? companies.filter((c: Item) => c.licence.status === 'active').length : '—'}
             </strong>
             <span>Active CarbonX licences</span>
           </div>
@@ -373,6 +413,14 @@ export function PublicPortal() {
             </p>
           </div>
         </section>
+        <div id="home-air-quality">
+          <React.Suspense fallback={<p className="muted">Loading India monitoring…</p>}>
+            <PublicMonitoringSummary />
+          </React.Suspense>
+        </div>
+        <div id="home-satellite">
+          <SatelliteVerification publicView />
+        </div>
       </main>
       <footer className="public-footer">
         <Brand />
@@ -406,6 +454,11 @@ export function PortalLogin({ portal }: { portal: 'company' | 'government' }) {
         ...values,
         portal,
       });
+      if (result.verificationRequired) {
+        toast(result.message);
+        setRegister(false);
+        return;
+      }
       signIn(result);
       location.hash = government ? 'government' : 'overview';
     } catch (e) {

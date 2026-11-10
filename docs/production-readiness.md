@@ -80,3 +80,5 @@ Exceedances create operational alerts, not automated legal findings. Government 
 ## Latest connection status
 
 Groq/Copernicus contract checks and the 68-test suite passed. The production build passed. The live connection checker returned weather, air model and Earth Search catalogue connected; Groq and CPCB need keys, and Copernicus remains unselected pending OAuth credentials. No model accuracy, real-company fraud finding, authenticated imagery result or Supabase migration was verified by those tests. The exposed chat key was not copied to .env or sent to a provider; use a rotated key.
+
+10 November 2026 update: Auth and private Storage are active and verified. PostgreSQL migration code is implemented, but hosted database activation remains blocked by network/TLS negotiation; current records still use SQLite. Public CPCB sample mode is rate-limited. See BACKEND_STATUS.md. No production-ready claim is made.

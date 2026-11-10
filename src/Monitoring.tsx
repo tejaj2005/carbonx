@@ -1,3 +1,4 @@
+import { AirTrend } from './TrendChart';
 import React, { useEffect, useState } from 'react';
 import {
   Bell,
@@ -322,6 +323,7 @@ function CityDetail({ city, close }: { city: Item; close: () => void }) {
     s = city.stations;
   return (
     <Modal title={city.name + ' · environmental sources'} wide onClose={close}>
+      <AirTrend points={city.model?.trend || []} />
       <div className="scope-note">
         <Wind size={18} />
         <span>Regional atmospheric context cannot establish a company-emissions violation.</span>
@@ -382,6 +384,13 @@ function CityDetail({ city, close }: { city: Item; close: () => void }) {
         )}
       </Panel>
       <Panel title="Official measured station summaries" kicker="CPCB / DATA.GOV.IN">
+        <p className="fine-print">
+          {s?.accessMode === 'public_sample'
+            ? 'Official public sample · maximum 10 records per request. '
+            : ''}
+          {s?.error || s?.note}
+        </p>
+        <Badge value={s?.status || 'unavailable'} />
         {s?.records?.length ? (
           <>
             <p className="callout info">
@@ -425,7 +434,8 @@ function CityDetail({ city, close }: { city: Item; close: () => void }) {
           >
             {s?.status === 'not_configured'
               ? 'Configure DATA_GOV_IN_API_KEY on the server to request official CPCB station summaries. Until then, no measured station values are claimed.'
-              : s?.note ||
+              : s?.error ||
+                s?.note ||
                 'The station provider returned no usable records. Check the last update and provider availability.'}
           </Empty>
         )}
@@ -567,7 +577,9 @@ export function MonitoringPage() {
               <b>Official CPCB station source</b>
               <small>
                 {m.stationConfigured
-                  ? 'Key configured; inspect record availability'
+                  ? m.stationAccessMode === 'sample'
+                    ? 'Official public sample · maximum 10 records per request'
+                    : 'Personal key configured; inspect record availability'
                   : 'Free data.gov.in key required'}
               </small>
             </span>
@@ -585,7 +597,7 @@ export function MonitoringPage() {
               <b>AI explanation</b>
               <small>
                 {m.ai.configured
-                  ? 'AI configured; connection must be verified'
+                  ? 'Configured · inference results show the model and generation time'
                   : 'Add your AI provider key to enable AI'}
               </small>
             </span>
@@ -728,7 +740,12 @@ export function MonitoringPage() {
       <p className="chart-note">{m.sources?.attribution}</p>
       {modal === 'rule' && <RuleForm close={() => setModal(null)} />}
       {modal === 'sample' && <EmissionForm close={() => setModal(null)} />}
-      {city && <CityDetail city={city} close={() => setCity(null)} />}
+      {city && (
+        <CityDetail
+          city={m.cities.find((c: Item) => c.id === city.id) || city}
+          close={() => setCity(null)}
+        />
+      )}
     </>
   );
 }
@@ -928,5 +945,52 @@ function EmissionOverview({ rules, facilities }: { rules: Item[]; facilities: It
         remain unassessed.
       </p>
     </section>
+  );
+}
+
+export function PublicMonitoringSummary() {
+  const [data, setData] = useState<Item | null>(null),
+    [city, setCity] = useState<Item | null>(null),
+    [error, setError] = useState(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const next = await api('/public/india');
+        if (active) {
+          setData(next);
+          setError(false);
+        }
+      } catch {
+        if (active) setError(true);
+      }
+    }
+    void load();
+    const timer = setInterval(() => void load(), 30000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  const chosen = data?.cities.find((c: Item) => c.id === city?.id) || city;
+  return (
+    <Panel title="India live environmental context" kicker="PUBLIC · EIGHT METROPOLITAN CITIES">
+      <p className="fine-print">
+        Regional air-quality models in µg/m³ · provider fetches every {data?.pollMinutes || 30}{' '}
+        minutes · display refresh every 30 seconds. Station observations are shown separately with
+        their own source times.
+      </p>
+      {error && (
+        <p className="error-text">
+          Refresh unavailable. Last received readings retain their source timestamps.
+        </p>
+      )}
+      <CityCards cities={data?.cities || []} select={setCity} />
+      {chosen && <CityDetail city={chosen} close={() => setCity(null)} />}
+      <small className="muted">
+        Records refreshed {data?.refreshedAt ? date(data.refreshedAt) : 'when connected'}. Regional
+        context does not measure any individual factory’s emissions.
+      </small>
+    </Panel>
   );
 }

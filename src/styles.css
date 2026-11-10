@@ -2715,3 +2715,119 @@ th {
     animation: none;
   }
 }
+
+.air-trend {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dce7df;
+}
+.stack-form {
+  display: grid;
+  gap: 14px;
+}
+.public-site main > .panel {
+  max-width: 1200px;
+  margin: 28px auto;
+}
+.public-site .live-satellite-layout {
+  min-width: 0;
+}
+
+.home-portals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  padding: 0 28px;
+}
+.home-portals > article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #d8e3da;
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 8px 24px #183b2810;
+  min-width: 0;
+}
+.home-portals > article > svg {
+  color: #28634b;
+}
+.home-portals h2 {
+  font-size: 21px;
+  margin: 0;
+  color: #183c2d;
+}
+.home-portals p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #597065;
+  margin: 0;
+}
+.home-portals .button {
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+}
+.home-portal-links {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+  padding: 6px 0;
+}
+.home-portal-links button {
+  background: transparent;
+  border: 0;
+  color: #296049;
+  text-align: left;
+  padding: 8px 0;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.home-portal-links button:hover {
+  text-decoration: underline;
+}
+.home-portals small {
+  font-size: 11px;
+  color: #6d8175;
+}
+.home-portals .home-demo-note {
+  grid-column: 1/-1;
+  text-align: center;
+  font-size: 11px;
+}
+#home-air-quality,
+#home-satellite {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 28px;
+  scroll-margin-top: 90px;
+}
+#public-registry {
+  scroll-margin-top: 90px;
+}
+@media (max-width: 900px) {
+  .home-portals {
+    grid-template-columns: 1fr;
+    max-width: 700px;
+  }
+  .home-portals > article {
+    padding: 22px;
+  }
+  .home-portal-links {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  #home-air-quality,
+  #home-satellite {
+    padding: 0 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-portals * {
+    scroll-behavior: auto;
+  }
+}

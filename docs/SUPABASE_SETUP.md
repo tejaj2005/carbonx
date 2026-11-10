@@ -1,5 +1,7 @@
 # Supabase setup for CarbonX
 
+Current status update: Supabase Auth and private Storage are implemented, enabled and live verified. Six evidence files were migrated and checksum checked. PostgreSQL persistence/migration code is implemented and locally tested, but hosted database activation is blocked by TLS negotiation from this network. Official CPCB public sample mode is now live-verified: ten station records for each of eight metros, with partial coverage. An initial HTTP 429 cleared on retry. See [BACKEND_STATUS.md](BACKEND_STATUS.md) for the current configuration and next steps; older observations below are historical.
+
 The project's existing URL, server secret key, session-pooler connection URI and supplied database password are saved in the ignored root .env. They are backend configuration; no credentials or setup form are displayed in CarbonX.
 
 The existing server key was accepted by the project's Data API and Auth health endpoint (HTTP 200). PostgreSQL on the dashboard's session-pooler port timed out before authentication. The database password is therefore unverified. No remote tables, passwords, policies, keys or records were changed.

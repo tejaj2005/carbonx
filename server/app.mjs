@@ -1,3 +1,5 @@
+import { publicSatelliteRoutes } from './public-satellite.mjs';
+import { cloudServices } from './cloud-services.mjs';
 import { orbitTools } from './orbit.mjs';
 import { satelliteTools } from './live-satellite.mjs';
 import { sendOfficeReport } from './office-exports.mjs';
@@ -65,17 +67,25 @@ function error(message, code = 400) {
   e.status = code;
   return e;
 }
-export function createApp(config) {
-  const store = openDatabase(config.dataDir),
+export async function createApp(config) {
+  const store = await openDatabase(config.dataDir, {
+      backend: config.testing ? 'sqlite' : config.databaseBackend || 'sqlite',
+    }),
+    cloud = cloudServices(config),
     ai = aiTools(config),
-    work = pipeline(store, config, ai),
-    auth = authTools(store, config),
+    work = pipeline(store, config, ai, cloud),
+    auth = authTools(store, config, cloud),
     app = express();
+  if (cloud.authEnabled)
+    await store.run(
+      'DELETE FROM sessions WHERE user_id IN (SELECT u.id FROM users u JOIN companies c ON c.id=u.company_id WHERE c.is_example=0 AND u.auth_user_id IS NULL)',
+    );
   const liveSatellite = satelliteTools(),
     orbit = orbitTools();
-  const governance = governanceTools(store, config, auth);
-  const monitoring = monitoringTools(store, config, ai);
-  for (const c of store.q('SELECT DISTINCT company_id FROM claims')) work.refresh(c.company_id);
+  const governance = await governanceTools(store, config, auth, cloud, environmentJob);
+  const monitoring = await monitoringTools(store, config, ai);
+  for (const c of await store.q('SELECT DISTINCT company_id FROM claims'))
+    await work.refresh(c.company_id);
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
   app.use(
@@ -112,8 +122,16 @@ export function createApp(config) {
     next();
   });
   app.get('/api/health', (_req, res) =>
-    res.json({ status: 'ok', app: 'carbonx', version: '1.0.0', database: 'ready' }),
+    res.json({
+      status: 'ok',
+      app: 'carbonx',
+      version: '1.0.0',
+      database: store.backend,
+      authentication: cloud.authEnabled ? 'supabase' : 'local',
+      evidenceStorage: cloud.storageEnabled ? 'supabase-private' : 'local',
+    }),
   );
+  publicSatelliteRoutes(app, liveSatellite, orbit, config);
   governance.publicRoutes(app);
   monitoring.publicRoutes(app);
   const limiter = rateLimit({
@@ -128,27 +146,31 @@ export function createApp(config) {
     const company = uuid('org_'),
       id = uuid('usr_'),
       hash = await hashPassword(password);
-    store.transaction(() => {
-      store.insert('companies', {
+    const identity =
+      !isExample && cloud.authEnabled ? await cloud.signup(email, password, name) : null;
+    await store.transaction(async () => {
+      await store.insert('companies', {
         id: company,
         name: companyName,
         is_example: isExample ? 1 : 0,
         created_at: now(),
       });
-      store.insert('users', {
+      await store.insert('users', {
         id,
         company_id: company,
         email,
         name,
         password_hash: hash,
+        auth_user_id: identity?.id || null,
         role: 'owner',
         created_at: now(),
       });
     });
-    return store.get(
+    const account = await store.get(
       'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.id=?',
       id,
     );
+    return { ...account, confirmationRequired: Boolean(identity?.confirmationRequired) };
   }
   app.post('/api/auth/register', async (req, res) => {
     if (!config.allowRegistration) throw error('Registration is disabled.', 403);
@@ -160,12 +182,17 @@ export function createApp(config) {
         password: z.string().min(12).max(128),
       })
       .parse(req.body);
-    if (store.get('SELECT id FROM users WHERE email=?', b.email.toLowerCase()))
+    if (await store.get('SELECT id FROM users WHERE email=?', b.email.toLowerCase()))
       throw error('An account with this address already exists.', 409);
     const user = await createAccount(b.company, b.name, b.email.toLowerCase(), b.password);
-    const csrf = auth.issue(res, user.id);
-    store.audit(user.company_id, user.id, 'account.created', 'company', user.company_id);
-    res.status(201).json({ user: auth.publicUser(user), csrf });
+    await store.audit(user.company_id, user.id, 'account.created', 'company', user.company_id);
+    if (user.confirmationRequired)
+      return res.status(201).json({
+        verificationRequired: true,
+        message: 'Confirm your email using Supabase, then sign in.',
+      });
+    const csrf = await auth.issue(res, user.id);
+    res.status(201).json({ user: await auth.publicUser(user), csrf });
   });
   app.post('/api/auth/login', async (req, res) => {
     const b = z
@@ -175,20 +202,24 @@ export function createApp(config) {
         portal: z.enum(['company', 'government']).optional(),
       })
       .parse(req.body);
-    const user = store.get(
+    const user = await store.get(
       'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.email=?',
       b.email.toLowerCase(),
     );
     if (
       !user ||
       user.disabled ||
-      (b.portal && b.portal !== (governance.authority(user) ? 'government' : 'company')) ||
-      !(await checkPassword(b.password, user.password_hash))
+      (b.portal && b.portal !== ((await governance.authority(user)) ? 'government' : 'company')) ||
+      ((!cloud.authEnabled || user.is_example || !user.auth_user_id) &&
+        !(await checkPassword(b.password, user.password_hash)))
     )
       throw error('Email or password is incorrect.', 401);
-    const csrf = auth.issue(res, user.id);
-    store.audit(user.company_id, user.id, 'session.started', 'user', user.id);
-    res.json({ user: auth.publicUser(user), csrf });
+    const authId = await cloud.authenticate(user, b.password);
+    if (authId && !user.auth_user_id)
+      await store.run('UPDATE users SET auth_user_id=? WHERE id=?', authId, user.id);
+    const csrf = await auth.issue(res, user.id);
+    await store.audit(user.company_id, user.id, 'session.started', 'user', user.id);
+    res.json({ user: await auth.publicUser(user), csrf });
   });
   app.post('/api/auth/demo', async (req, res) => {
     const demoPortal = z
@@ -202,17 +233,17 @@ export function createApp(config) {
       crypto.randomBytes(32).toString('hex'),
       true,
     );
-    const csrf = auth.issue(res, user.id);
+    const csrf = await auth.issue(res, user.id);
     const facility = {
       id: uuid('fac_'),
       company_id: user.company_id,
       ...demoData.facility,
       created_at: now(),
     };
-    store.insert('facilities', facility);
+    await store.insert('facilities', facility);
     for (const o of demoData.observations) {
       const n = normalize(o.value, o.unit, o.metric);
-      store.insert('observations', {
+      await store.insert('observations', {
         ...o,
         id: uuid('obs_'),
         company_id: user.company_id,
@@ -249,18 +280,22 @@ export function createApp(config) {
       archived: 0,
       created_at: now(),
     };
-    store.insert('reports', report);
-    const job = work.enqueue(report);
-    store.audit(user.company_id, user.id, 'example.created', 'company', user.company_id);
-    governance.registry(user.company_id);
-    store.run(
+    await cloud.saveOriginal(
+      report,
+      fs.readFileSync(path.join(config.dataDir, 'uploads', report.stored_name)),
+    );
+    await store.insert('reports', report);
+    const job = await work.enqueue(report);
+    await store.audit(user.company_id, user.id, 'example.created', 'company', user.company_id);
+    await governance.registry(user.company_id);
+    await store.run(
       'UPDATE company_registry SET licence_status=?,licence_number=?,public_visible=1,public_description=? WHERE company_id=?',
       'active',
       'CX-DEMO-' + user.company_id.slice(-6).toUpperCase(),
       'Synthetic demonstration company. All usage and claims are invented examples.',
       user.company_id,
     );
-    store.insert('submissions', {
+    await store.insert('submissions', {
       id: uuid('sub_'),
       company_id: user.company_id,
       text: demoData.submission.text,
@@ -274,30 +309,30 @@ export function createApp(config) {
       updated_at: now(),
     });
     if (demoPortal === 'government')
-      store.insert('government_admins', {
+      await store.insert('government_admins', {
         user_id: user.id,
         authority: 'Government Oversight',
         demo_company_id: user.company_id,
       });
-    res.status(201).json({ user: auth.publicUser(user), csrf, jobId: job.id });
+    res.status(201).json({ user: await auth.publicUser(user), csrf, jobId: job.id });
   });
   app.use('/api', auth.requireAuth, auth.csrfCheck);
   app.post('/api/auth/demo-switch', async (req, res) => {
     if (!config.allowDemo || !req.user.is_example)
       throw error('Role switching is available only in a synthetic presentation workspace.', 403);
     const b = z.object({ portal: z.enum(['company', 'government']) }).parse(req.body),
-      existing = governance.authority(req.user);
+      existing = await governance.authority(req.user);
     if (existing && existing.demo_company_id !== req.user.company_id)
       throw error('This authority cannot switch company roles.', 403);
     // Reuse each synthetic role's identity so inboxes and read state survive a walkthrough.
     const previous =
       b.portal === 'government'
-        ? store.get(
+        ? await store.get(
             'SELECT u.id FROM users u JOIN government_admins g ON g.user_id=u.id WHERE u.company_id=? AND g.demo_company_id=? AND u.disabled=0 ORDER BY u.created_at LIMIT 1',
             req.user.company_id,
             req.user.company_id,
           )
-        : store.get(
+        : await store.get(
             "SELECT u.id FROM users u LEFT JOIN government_admins g ON g.user_id=u.id WHERE u.company_id=? AND g.user_id IS NULL AND u.role='owner' AND u.disabled=0 ORDER BY u.created_at LIMIT 1",
             req.user.company_id,
           );
@@ -305,9 +340,9 @@ export function createApp(config) {
     const password_hash = previous
       ? null
       : await hashPassword(crypto.randomBytes(32).toString('hex'));
-    store.transaction(() => {
+    await store.transaction(async () => {
       if (!previous) {
-        store.insert('users', {
+        await store.insert('users', {
           id,
           company_id: req.user.company_id,
           name: b.portal === 'government' ? 'Example Government Officer' : 'Example Company Owner',
@@ -318,38 +353,55 @@ export function createApp(config) {
           created_at: now(),
         });
         if (b.portal === 'government')
-          store.insert('government_admins', {
+          await store.insert('government_admins', {
             user_id: id,
             authority: 'Government Oversight',
             demo_company_id: req.user.company_id,
           });
       }
-      store.audit(req.user.company_id, id, 'demo.role_switched', 'user', id, { portal: b.portal });
+      await store.audit(req.user.company_id, id, 'demo.role_switched', 'user', id, {
+        portal: b.portal,
+      });
     });
-    const user = store.get(
+    const user = await store.get(
       'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.id=?',
       id,
     );
-    auth.logout(req, res);
-    const csrf = auth.issue(res, id);
-    res.json({ user: auth.publicUser(user), csrf });
+    await auth.logout(req, res);
+    const csrf = await auth.issue(res, id);
+    res.json({ user: await auth.publicUser(user), csrf });
   });
   monitoring.protectedRoutes(app);
+  app.use(
+    '/api/government/facilities',
+    rateLimit({
+      windowMs: 60000,
+      limit: config.testing ? 1000 : 8,
+      skip: (req) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method),
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: { error: 'Wait a minute before requesting more site context.' },
+    }),
+  );
   governance.protectedRoutes(app);
   app.use('/api', governance.companyGuard);
   const company = (req) => req.user.company_id;
-  function owned(table, id, tenant) {
-    const row = store.get('SELECT * FROM ' + table + ' WHERE id=? AND company_id=?', id, tenant);
+  async function owned(table, id, tenant) {
+    const row = await store.get(
+      'SELECT * FROM ' + table + ' WHERE id=? AND company_id=?',
+      id,
+      tenant,
+    );
     if (!row) throw error('Record not found.', 404);
     return row;
   }
   const analysts = auth.roles('owner', 'analyst'),
     reviewers = auth.roles('owner', 'reviewer');
-  app.get('/api/auth/me', (req, res) =>
-    res.json({ user: auth.publicUser(req.user), csrf: req.user.csrf }),
+  app.get('/api/auth/me', async (req, res) =>
+    res.json({ user: await auth.publicUser(req.user), csrf: req.user.csrf }),
   );
-  app.post('/api/auth/logout', (req, res) => {
-    auth.logout(req, res);
+  app.post('/api/auth/logout', async (req, res) => {
+    await auth.logout(req, res);
     res.json({ ok: true });
   });
   app.get('/api/settings', (req, res) =>
@@ -380,32 +432,55 @@ export function createApp(config) {
         },
       },
       referenceData,
-      storage: 'SQLite + local uploads',
+      storage:
+        store.backend +
+        ' + ' +
+        (cloud.storageEnabled ? 'Supabase private Storage' : 'local uploads'),
       maxUploadMB: config.maxUpload / 1024 / 1024,
       isExample: Boolean(req.user.is_example),
       goals: SDGS,
     }),
   );
+  app.patch('/api/auth/profile', async (req, res) => {
+    const b = z
+      .object({ name: z.string().trim().min(2).max(80) })
+      .strict()
+      .parse(req.body);
+    await store.run('UPDATE users SET name=? WHERE id=?', b.name, req.user.id);
+    await store.audit(req.user.company_id, req.user.id, 'profile.updated', 'user', req.user.id);
+    const user = await store.get(
+      'SELECT u.*,c.name company_name,c.is_example FROM users u JOIN companies c ON c.id=u.company_id WHERE u.id=?',
+      req.user.id,
+    );
+    res.json({ user: await auth.publicUser(user), csrf: req.user.csrf });
+  });
   app.post('/api/auth/password', async (req, res) => {
     const b = z
       .object({ currentPassword: z.string().max(128), newPassword: z.string().min(12).max(128) })
       .parse(req.body);
-    if (!(await checkPassword(b.currentPassword, req.user.password_hash)))
+    if (
+      (!cloud.authEnabled || req.user.is_example || !req.user.auth_user_id) &&
+      !(await checkPassword(b.currentPassword, req.user.password_hash))
+    )
       throw error('Current password is incorrect.', 400);
-    store.run(
+    await cloud.changePassword(req.user, b.currentPassword, b.newPassword);
+    await store.run(
       'UPDATE users SET password_hash=? WHERE id=?',
       await hashPassword(b.newPassword),
       req.user.id,
     );
-    store.run('DELETE FROM sessions WHERE user_id=? AND csrf<>?', req.user.id, req.user.csrf);
-    store.audit(company(req), req.user.id, 'password.changed', 'user', req.user.id);
+    await store.run('DELETE FROM sessions WHERE user_id=? AND csrf<>?', req.user.id, req.user.csrf);
+    await store.audit(company(req), req.user.id, 'password.changed', 'user', req.user.id);
     res.json({ ok: true });
   });
-  app.get('/api/dashboard', (req, res) => {
+  app.get('/api/dashboard', async (req, res) => {
     const t = company(req),
-      reports = store.q('SELECT id,status FROM reports WHERE company_id=? AND archived=0', t),
-      claims = store.q('SELECT id,status,review_state,sdgs_json FROM claims WHERE company_id=?', t),
-      observations = store.q(
+      reports = await store.q('SELECT id,status FROM reports WHERE company_id=? AND archived=0', t),
+      claims = await store.q(
+        'SELECT id,status,review_state,sdgs_json FROM claims WHERE company_id=?',
+        t,
+      ),
+      observations = await store.q(
         'SELECT metric,year,normalized_value,normalized_unit,boundary,facility_id FROM observations WHERE company_id=? ORDER BY year',
         t,
       );
@@ -424,23 +499,25 @@ export function createApp(config) {
       },
       coverage,
       observations,
-      recentReports: store.q(
+      recentReports: await store.q(
         'SELECT r.*, (SELECT COUNT(*) FROM claims c WHERE c.report_id=r.id) claim_count FROM reports r WHERE company_id=? AND archived=0 ORDER BY created_at DESC LIMIT 5',
         t,
       ),
-      recentActivity: store.q(
+      recentActivity: await store.q(
         'SELECT a.*,u.name actor FROM audit a LEFT JOIN users u ON u.id=a.user_id WHERE a.company_id=? ORDER BY a.created_at DESC LIMIT 5',
         t,
       ),
     });
   });
-  app.get('/api/facilities', (req, res) =>
-    res.json(store.q('SELECT * FROM facilities WHERE company_id=? ORDER BY name', company(req))),
+  app.get('/api/facilities', async (req, res) =>
+    res.json(
+      await store.q('SELECT * FROM facilities WHERE company_id=? ORDER BY name', company(req)),
+    ),
   );
-  app.post('/api/facilities', analysts, (req, res) => {
+  app.post('/api/facilities', analysts, async (req, res) => {
     const b = facilitySchema.parse(req.body),
       id = uuid('fac_');
-    store.insert('facilities', {
+    await store.insert('facilities', {
       id,
       company_id: company(req),
       name: b.name,
@@ -449,12 +526,12 @@ export function createApp(config) {
       boundary: b.boundary,
       created_at: now(),
     });
-    store.audit(company(req), req.user.id, 'facility.created', 'facility', id);
-    res.status(201).json(owned('facilities', id, company(req)));
+    await store.audit(company(req), req.user.id, 'facility.created', 'facility', id);
+    res.status(201).json(await owned('facilities', id, company(req)));
   });
-  app.get('/api/reports', (req, res) =>
+  app.get('/api/reports', async (req, res) =>
     res.json(
-      store.q(
+      await store.q(
         'SELECT r.*,f.name facility_name,(SELECT COUNT(*) FROM claims c WHERE c.report_id=r.id) claim_count FROM reports r LEFT JOIN facilities f ON f.id=r.facility_id WHERE r.company_id=? AND archived=0 ORDER BY r.created_at DESC',
         company(req),
       ),
@@ -464,7 +541,7 @@ export function createApp(config) {
     storage: multer.memoryStorage(),
     limits: { fileSize: config.maxUpload, files: 1, fields: 8 },
   });
-  app.post('/api/reports/upload', analysts, upload.single('report'), (req, res) => {
+  app.post('/api/reports/upload', analysts, upload.single('report'), async (req, res) => {
     const b = z
       .object({
         name: z.string().trim().min(2).max(160),
@@ -485,10 +562,10 @@ export function createApp(config) {
         /<\s*(?:script|html|iframe)\b/i.test(req.file.buffer.subarray(0, 1000).toString()))
     )
       throw error('Upload plain UTF-8 text, not HTML or binary data.');
-    const facility = b.facilityId ? owned('facilities', b.facilityId, company(req)) : null;
+    const facility = b.facilityId ? await owned('facilities', b.facilityId, company(req)) : null;
     const sha = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
     if (
-      store.get(
+      await store.get(
         'SELECT id FROM reports WHERE company_id=? AND sha256=? AND archived=0',
         company(req),
         sha,
@@ -520,33 +597,38 @@ export function createApp(config) {
       archived: 0,
       created_at: now(),
     };
-    store.insert('reports', report);
-    const job = work.enqueue(report);
-    store.audit(company(req), req.user.id, 'report.uploaded', 'report', report.id, {
+    await cloud.saveOriginal(report, req.file.buffer);
+    await store.insert('reports', report);
+    const job = await work.enqueue(report);
+    await store.audit(company(req), req.user.id, 'report.uploaded', 'report', report.id, {
       name: b.name,
       bytes: req.file.size,
     });
     res.status(202).json({ report, job });
   });
-  app.get('/api/reports/:id', (req, res) => {
-    const row = owned('reports', req.params.id, company(req));
+  app.get('/api/reports/:id', async (req, res) => {
+    const row = await owned('reports', req.params.id, company(req));
     res.json({
       ...row,
-      pages: store
-        .q(
+      pages: (
+        await store.q(
           'SELECT id,number,ocr,length(text) text_length,tables_json FROM pages WHERE report_id=? AND company_id=? ORDER BY number',
           row.id,
           company(req),
         )
-        .map((p) => ({ ...p, tables: JSON.parse(p.tables_json) })),
-      claims: store
-        .q('SELECT * FROM claims WHERE report_id=? AND company_id=?', row.id, company(req))
-        .map(parseClaim),
+      ).map((p) => ({ ...p, tables: JSON.parse(p.tables_json) })),
+      claims: (
+        await store.q(
+          'SELECT * FROM claims WHERE report_id=? AND company_id=?',
+          row.id,
+          company(req),
+        )
+      ).map(parseClaim),
     });
   });
-  app.get('/api/reports/:id/pages/:number', (req, res) => {
-    owned('reports', req.params.id, company(req));
-    const p = store.get(
+  app.get('/api/reports/:id/pages/:number', async (req, res) => {
+    await owned('reports', req.params.id, company(req));
+    const p = await store.get(
       'SELECT * FROM pages WHERE report_id=? AND company_id=? AND number=?',
       req.params.id,
       company(req),
@@ -555,8 +637,8 @@ export function createApp(config) {
     if (!p) throw error('Source page not found.', 404);
     res.json({ ...p, tables: JSON.parse(p.tables_json) });
   });
-  app.get('/api/reports/:id/file', (req, res) => {
-    const r = owned('reports', req.params.id, company(req));
+  app.get('/api/reports/:id/file', async (req, res) => {
+    const r = await owned('reports', req.params.id, company(req));
     res.type(r.mime);
     res.setHeader(
       'Content-Disposition',
@@ -565,10 +647,10 @@ export function createApp(config) {
         r.original_name.replace(/[^a-zA-Z0-9._-]/g, '_') +
         '"',
     );
-    res.sendFile(path.join(config.dataDir, 'uploads', r.stored_name));
+    res.send(await cloud.download(r));
   });
-  app.post('/api/reports/:id/reprocess', analysts, (req, res) => {
-    const old = owned('reports', req.params.id, company(req));
+  app.post('/api/reports/:id/reprocess', analysts, async (req, res) => {
+    const old = await owned('reports', req.params.id, company(req));
     const report = {
       ...old,
       id: uuid('rpt_'),
@@ -581,32 +663,32 @@ export function createApp(config) {
       archived: 0,
       created_at: now(),
     };
-    store.insert('reports', report);
-    const job = work.enqueue(report);
-    store.audit(company(req), req.user.id, 'report.reprocessed', 'report', report.id, {
+    await store.insert('reports', report);
+    const job = await work.enqueue(report);
+    await store.audit(company(req), req.user.id, 'report.reprocessed', 'report', report.id, {
       previousReport: old.id,
     });
     res.status(202).json({ report, job });
   });
-  app.post('/api/reports/:id/archive', analysts, (req, res) => {
-    owned('reports', req.params.id, company(req));
-    store.run(
+  app.post('/api/reports/:id/archive', analysts, async (req, res) => {
+    await owned('reports', req.params.id, company(req));
+    await store.run(
       'UPDATE reports SET archived=1 WHERE id=? AND company_id=?',
       req.params.id,
       company(req),
     );
-    store.audit(company(req), req.user.id, 'report.archived', 'report', req.params.id);
+    await store.audit(company(req), req.user.id, 'report.archived', 'report', req.params.id);
     res.json({ ok: true });
   });
-  app.get('/api/jobs', (req, res) =>
+  app.get('/api/jobs', async (req, res) =>
     res.json(
-      store.q(
+      await store.q(
         'SELECT * FROM jobs WHERE company_id=? ORDER BY created_at DESC LIMIT 30',
         company(req),
       ),
     ),
   );
-  app.get('/api/claims', (req, res) => {
+  app.get('/api/claims', async (req, res) => {
     const t = company(req);
     let sql =
       'SELECT c.*,r.name report_name,p.number page_number FROM claims c JOIN reports r ON r.id=c.report_id JOIN chunks k ON k.id=c.chunk_id JOIN pages p ON p.id=k.page_id WHERE c.company_id=? AND r.archived=0';
@@ -621,7 +703,7 @@ export function createApp(config) {
       args.push(req.query.status);
     }
     if (req.query.reportId) {
-      owned('reports', String(req.query.reportId), t);
+      await owned('reports', String(req.query.reportId), t);
       sql += ' AND c.report_id=?';
       args.push(req.query.reportId);
     }
@@ -630,11 +712,13 @@ export function createApp(config) {
       sql += ' AND EXISTS (SELECT 1 FROM json_each(c.sdgs_json) WHERE value=?)';
       args.push(goal);
     }
-    res.json(store.q(sql + ' ORDER BY c.created_at DESC LIMIT 1000', ...args).map(parseClaim));
+    res.json(
+      (await store.q(sql + ' ORDER BY c.created_at DESC LIMIT 1000', ...args)).map(parseClaim),
+    );
   });
   app.get('/api/claims/:id', async (req, res) => {
-    const c = owned('claims', req.params.id, company(req)),
-      source = store.get(
+    const c = await owned('claims', req.params.id, company(req)),
+      source = await store.get(
         'SELECT k.*,p.number page_number,p.text page_text,p.tables_json,r.name report_name,r.mime FROM chunks k JOIN pages p ON p.id=k.page_id JOIN reports r ON r.id=k.report_id WHERE k.id=? AND k.company_id=?',
         c.chunk_id,
         company(req),
@@ -644,7 +728,7 @@ export function createApp(config) {
       ...parseClaim(c),
       source: { ...source, embedding: undefined, tables: JSON.parse(source.tables_json) },
       retrieved: retrieved.passages.map(({ embedding, ...p }) => p),
-      reviews: store.q(
+      reviews: await store.q(
         'SELECT v.*,u.name reviewer FROM reviews v JOIN users u ON u.id=v.user_id WHERE v.company_id=? AND v.claim_id=? ORDER BY v.created_at DESC',
         company(req),
         c.id,
@@ -664,12 +748,12 @@ export function createApp(config) {
     sdgs: z.array(z.number().int().min(1).max(17)).max(6),
     rationale: z.string().trim().min(8).max(1000),
   });
-  app.patch('/api/claims/:id', reviewers, (req, res) => {
-    const c = owned('claims', req.params.id, company(req)),
+  app.patch('/api/claims/:id', reviewers, async (req, res) => {
+    const c = await owned('claims', req.params.id, company(req)),
       b = correction.parse(req.body);
-    if (b.facility_id) owned('facilities', b.facility_id, company(req));
+    if (b.facility_id) await owned('facilities', b.facility_id, company(req));
     const n = normalize(b.value, b.unit, b.metric);
-    store.run(
+    await store.run(
       'UPDATE claims SET metric=?,value=?,unit=?,normalized_value=?,normalized_unit=?,year=?,baseline_year=?,boundary=?,facility_id=?,claimed_change=?,direction=?,sdgs_json=?,rationale=?,review_state=? WHERE id=? AND company_id=?',
       b.metric,
       b.value,
@@ -688,8 +772,8 @@ export function createApp(config) {
       c.id,
       company(req),
     );
-    work.refresh(company(req));
-    store.audit(company(req), req.user.id, 'claim.corrected', 'claim', c.id, {
+    await work.refresh(company(req));
+    await store.audit(company(req), req.user.id, 'claim.corrected', 'claim', c.id, {
       before: {
         metric: c.metric,
         value: c.value,
@@ -699,17 +783,17 @@ export function createApp(config) {
       },
       after: b,
     });
-    res.json(parseClaim(owned('claims', c.id, company(req))));
+    res.json(parseClaim(await owned('claims', c.id, company(req))));
   });
-  app.post('/api/claims/:id/review', reviewers, (req, res) => {
-    const c = owned('claims', req.params.id, company(req)),
+  app.post('/api/claims/:id/review', reviewers, async (req, res) => {
+    const c = await owned('claims', req.params.id, company(req)),
       b = z
         .object({
           decision: z.enum(['accepted', 'follow_up', 'rejected']),
           rationale: z.string().trim().min(10).max(3000),
         })
         .parse(req.body);
-    store.insert('reviews', {
+    await store.insert('reviews', {
       id: uuid('rev_'),
       company_id: company(req),
       claim_id: c.id,
@@ -718,30 +802,30 @@ export function createApp(config) {
       rationale: b.rationale,
       created_at: now(),
     });
-    store.run(
+    await store.run(
       'UPDATE claims SET review_state=? WHERE id=? AND company_id=?',
       b.decision,
       c.id,
       company(req),
     );
-    store.audit(company(req), req.user.id, 'claim.reviewed', 'claim', c.id, b);
+    await store.audit(company(req), req.user.id, 'claim.reviewed', 'claim', c.id, b);
     res.json({ ok: true });
   });
-  app.get('/api/history', (req, res) =>
+  app.get('/api/history', async (req, res) =>
     res.json(
-      store.q(
+      await store.q(
         'SELECT o.*,f.name facility_name FROM observations o LEFT JOIN facilities f ON f.id=o.facility_id WHERE o.company_id=? ORDER BY o.year,o.metric',
         company(req),
       ),
     ),
   );
-  function addObservation(req, b) {
-    if (b.facilityId) owned('facilities', b.facilityId, company(req));
-    if (b.reportId) owned('reports', b.reportId, company(req));
+  async function addObservation(req, b) {
+    if (b.facilityId) await owned('facilities', b.facilityId, company(req));
+    if (b.reportId) await owned('reports', b.reportId, company(req));
     const n = normalize(b.value, b.unit, b.metric);
     if (!n) throw error('The unit is incompatible with the selected metric.');
     if (
-      store.get(
+      await store.get(
         "SELECT id FROM observations WHERE company_id=? AND metric=? AND year=? AND boundary=? AND ifnull(facility_id,'')=?",
         company(req),
         b.metric,
@@ -755,7 +839,7 @@ export function createApp(config) {
         409,
       );
     const id = uuid('obs_');
-    store.insert('observations', {
+    await store.insert('observations', {
       id,
       company_id: company(req),
       facility_id: b.facilityId || null,
@@ -772,14 +856,14 @@ export function createApp(config) {
     });
     return id;
   }
-  app.post('/api/history', analysts, (req, res) => {
+  app.post('/api/history', analysts, async (req, res) => {
     const b = observationSchema.parse(req.body),
-      id = addObservation(req, b);
-    work.refresh(company(req));
-    store.audit(company(req), req.user.id, 'observation.added', 'observation', id);
-    res.status(201).json(owned('observations', id, company(req)));
+      id = await addObservation(req, b);
+    await work.refresh(company(req));
+    await store.audit(company(req), req.user.id, 'observation.added', 'observation', id);
+    res.status(201).json(await owned('observations', id, company(req)));
   });
-  app.post('/api/history/import', analysts, (req, res) => {
+  app.post('/api/history/import', analysts, async (req, res) => {
     const b = z
       .object({ csv: z.string().min(1).max(500000), confirm: z.boolean().default(false) })
       .parse(req.body);
@@ -791,35 +875,47 @@ export function createApp(config) {
     }
     if (!rows.length || rows.length > 500)
       throw error('Import between 1 and 500 observations per CSV.');
-    const parsed = rows.map((r, i) => {
-      try {
-        const x = observationSchema.parse({
-          ...r,
-          facilityId: r.facilityId || null,
-          reportId: r.reportId || null,
-        });
-        if (!normalize(x.value, x.unit, x.metric)) throw Error('Unit does not match metric');
-        if (x.facilityId) owned('facilities', x.facilityId, company(req));
-        return x;
-      } catch {
-        throw error('CSV row ' + (i + 2) + ' has invalid or inaccessible fields.');
-      }
-    });
+    const parsed = await Promise.all(
+      rows.map(async (r, i) => {
+        try {
+          const x = observationSchema.parse({
+            ...r,
+            facilityId: r.facilityId || null,
+            reportId: r.reportId || null,
+          });
+          if (!normalize(x.value, x.unit, x.metric)) throw Error('Unit does not match metric');
+          if (x.facilityId) await owned('facilities', x.facilityId, company(req));
+          return x;
+        } catch {
+          throw error('CSV row ' + (i + 2) + ' has invalid or inaccessible fields.');
+        }
+      }),
+    );
     if (!b.confirm) return res.json({ preview: parsed, count: parsed.length });
-    store.transaction(() => {
-      for (const r of parsed) addObservation(req, r);
+    await store.transaction(async () => {
+      for (const r of parsed) await addObservation(req, r);
     });
-    work.refresh(company(req));
-    store.audit(company(req), req.user.id, 'history.imported', 'observations', null, {
+    await work.refresh(company(req));
+    await store.audit(company(req), req.user.id, 'history.imported', 'observations', null, {
       count: parsed.length,
     });
     res.status(201).json({ count: parsed.length });
   });
-  app.delete('/api/history/:id', analysts, (req, res) => {
-    owned('observations', req.params.id, company(req));
-    store.run('DELETE FROM observations WHERE id=? AND company_id=?', req.params.id, company(req));
-    work.refresh(company(req));
-    store.audit(company(req), req.user.id, 'observation.removed', 'observation', req.params.id);
+  app.delete('/api/history/:id', analysts, async (req, res) => {
+    await owned('observations', req.params.id, company(req));
+    await store.run(
+      'DELETE FROM observations WHERE id=? AND company_id=?',
+      req.params.id,
+      company(req),
+    );
+    await work.refresh(company(req));
+    await store.audit(
+      company(req),
+      req.user.id,
+      'observation.removed',
+      'observation',
+      req.params.id,
+    );
     res.json({ ok: true });
   });
   app.post('/api/retrieval/search', async (req, res) => {
@@ -830,7 +926,7 @@ export function createApp(config) {
         answer: z.boolean().default(false),
       })
       .parse(req.body);
-    if (b.reportId) owned('reports', b.reportId, company(req));
+    if (b.reportId) await owned('reports', b.reportId, company(req));
     const result = await work.retrieve(company(req), b.query, b.reportId || null, 5);
     let answer = null;
     if (b.answer && ai.available && result.passages.length) {
@@ -850,7 +946,7 @@ export function createApp(config) {
       passages: result.passages.map(({ embedding, score, ...p }) => p),
       answer,
     });
-    store.audit(company(req), req.user.id, 'evidence.searched', 'retrieval', null, {
+    await store.audit(company(req), req.user.id, 'evidence.searched', 'retrieval', null, {
       mode: result.mode,
       results: result.passages.length,
     });
@@ -861,7 +957,7 @@ export function createApp(config) {
         'Add your AI provider key on the server and restart CarbonX to generate an AI-assisted plan.',
         409,
       );
-    const claims = store.q(
+    const claims = await store.q(
       'SELECT id,text,status,reason_json,comparison_json FROM claims WHERE company_id=? AND status<>? LIMIT 30',
       company(req),
       'supported',
@@ -898,7 +994,7 @@ export function createApp(config) {
     let count = 0;
     for (const action of result.data.actions || []) {
       if (!claims.some((c) => c.id === action.claimId)) continue;
-      store.run(
+      await store.run(
         'UPDATE recommendations SET title=?,action=?,priority=?,method=? WHERE company_id=? AND claim_id=?',
         action.title.slice(0, 160),
         action.action.slice(0, 3000),
@@ -909,30 +1005,30 @@ export function createApp(config) {
       );
       count++;
     }
-    store.audit(company(req), req.user.id, 'actions.generated', 'recommendations', null, {
+    await store.audit(company(req), req.user.id, 'actions.generated', 'recommendations', null, {
       model: result.model,
       count,
     });
     res.json({ count, model: result.model });
   });
-  app.get('/api/recommendations', (req, res) =>
+  app.get('/api/recommendations', async (req, res) =>
     res.json(
-      store.q(
+      await store.q(
         "SELECT r.*,c.text claim_text,c.report_id,c.sdgs_json FROM recommendations r LEFT JOIN claims c ON c.id=r.claim_id WHERE r.company_id=? ORDER BY CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,r.created_at DESC",
         company(req),
       ),
     ),
   );
-  app.patch('/api/recommendations/:id', reviewers, (req, res) => {
-    owned('recommendations', req.params.id, company(req));
+  app.patch('/api/recommendations/:id', reviewers, async (req, res) => {
+    await owned('recommendations', req.params.id, company(req));
     const b = z.object({ status: z.enum(['open', 'in_progress', 'done']) }).parse(req.body);
-    store.run(
+    await store.run(
       'UPDATE recommendations SET status=? WHERE id=? AND company_id=?',
       b.status,
       req.params.id,
       company(req),
     );
-    store.audit(
+    await store.audit(
       company(req),
       req.user.id,
       'recommendation.updated',
@@ -979,20 +1075,20 @@ export function createApp(config) {
       res.status(503).json({ error: 'Satellite image unavailable.' });
     }
   });
-  app.get('/api/environment', (req, res) =>
+  app.get('/api/environment', async (req, res) =>
     res.json(
-      store
-        .q(
+      (
+        await store.q(
           'SELECT e.*,f.name facility_name FROM environment e JOIN facilities f ON f.id=e.facility_id WHERE e.company_id=? ORDER BY e.created_at DESC LIMIT 30',
           company(req),
         )
-        .map((x) => ({ ...x, payload: JSON.parse(x.payload_json) })),
+      ).map((x) => ({ ...x, payload: JSON.parse(x.payload_json) })),
     ),
   );
-  function environmentJob(req, facility, kind, fn) {
+  async function environmentJob(req, facility, kind, fn) {
     const job = {
       id: uuid('job_'),
-      company_id: company(req),
+      company_id: facility.company_id,
       report_id: null,
       type: kind,
       status: 'queued',
@@ -1002,9 +1098,9 @@ export function createApp(config) {
       created_at: now(),
       updated_at: now(),
     };
-    store.insert('jobs', job);
+    await store.insert('jobs', job);
     setImmediate(async () => {
-      store.run('UPDATE jobs SET status=?,progress=? WHERE id=?', 'running', 20, job.id);
+      await store.run('UPDATE jobs SET status=?,progress=? WHERE id=?', 'running', 20, job.id);
       let payload, status;
       try {
         payload = await fn();
@@ -1013,7 +1109,7 @@ export function createApp(config) {
         status = 'unavailable';
         payload = { status, error: safeError(e.message), observedAt: now() };
       }
-      store.insert('environment', {
+      await store.insert('environment', {
         id: uuid('env_'),
         company_id: job.company_id,
         facility_id: facility.id,
@@ -1022,7 +1118,7 @@ export function createApp(config) {
         payload_json: JSON.stringify(payload),
         created_at: now(),
       });
-      store.run(
+      await store.run(
         'UPDATE jobs SET status=?,progress=?,stage=?,error=?,updated_at=? WHERE id=?',
         status === 'unavailable' ? 'failed' : 'completed',
         100,
@@ -1031,21 +1127,28 @@ export function createApp(config) {
         now(),
         job.id,
       );
-      store.audit(job.company_id, req.user.id, 'environment.fetched', 'facility', facility.id, {
-        kind,
-        status,
-      });
+      await store.audit(
+        job.company_id,
+        req.user.id,
+        'environment.fetched',
+        'facility',
+        facility.id,
+        {
+          kind,
+          status,
+        },
+      );
     });
     return job;
   }
-  app.post('/api/environment/weather', analysts, (req, res) => {
+  app.post('/api/environment/weather', analysts, async (req, res) => {
     const b = z.object({ facilityId: z.string() }).parse(req.body),
-      facility = owned('facilities', b.facilityId, company(req));
+      facility = await owned('facilities', b.facilityId, company(req));
     res
       .status(202)
-      .json(environmentJob(req, facility, 'atmosphere', () => atmosphericContext(facility)));
+      .json(await environmentJob(req, facility, 'atmosphere', () => atmosphericContext(facility)));
   });
-  app.post('/api/environment/satellite', analysts, (req, res) => {
+  app.post('/api/environment/satellite', analysts, async (req, res) => {
     const date = z.iso.date(),
       b = z
         .object({
@@ -1063,22 +1166,27 @@ export function createApp(config) {
       b.afterEnd > now().slice(0, 10)
     )
       throw error('Use two ordered, non-overlapping date windows ending no later than today.');
-    const facility = owned('facilities', b.facilityId, company(req));
+    const facility = await owned('facilities', b.facilityId, company(req));
     res
       .status(202)
-      .json(environmentJob(req, facility, 'satellite', () => satelliteComparison(facility, b)));
+      .json(
+        await environmentJob(req, facility, 'satellite', () => satelliteComparison(facility, b)),
+      );
   });
-  app.get('/api/audit', reviewers, (req, res) =>
+  app.get('/api/audit', reviewers, async (req, res) =>
     res.json(
-      store.q(
+      await store.q(
         'SELECT a.*,u.name actor FROM audit a LEFT JOIN users u ON u.id=a.user_id WHERE a.company_id=? ORDER BY a.created_at DESC LIMIT 500',
         company(req),
       ),
     ),
   );
-  app.get('/api/team', auth.roles('owner'), (req, res) =>
+  app.get('/api/team', auth.roles('owner'), async (req, res) =>
     res.json(
-      store.q('SELECT id,name,email,role,created_at FROM users WHERE company_id=?', company(req)),
+      await store.q(
+        'SELECT id,name,email,role,created_at FROM users WHERE company_id=?',
+        company(req),
+      ),
     ),
   );
   app.post('/api/team', auth.roles('owner'), async (req, res) => {
@@ -1090,10 +1198,10 @@ export function createApp(config) {
         role: z.enum(['analyst', 'reviewer']),
       })
       .parse(req.body);
-    if (store.get('SELECT id FROM users WHERE email=?', b.email.toLowerCase()))
+    if (await store.get('SELECT id FROM users WHERE email=?', b.email.toLowerCase()))
       throw error('This email is already registered.', 409);
     const id = uuid('usr_');
-    store.insert('users', {
+    await store.insert('users', {
       id,
       company_id: company(req),
       email: b.email.toLowerCase(),
@@ -1102,30 +1210,30 @@ export function createApp(config) {
       role: b.role,
       created_at: now(),
     });
-    store.audit(company(req), req.user.id, 'team.member_added', 'user', id, { role: b.role });
+    await store.audit(company(req), req.user.id, 'team.member_added', 'user', id, { role: b.role });
     res.status(201).json({ id });
   });
-  app.get('/api/evaluations', (req, res) =>
+  app.get('/api/evaluations', async (req, res) =>
     res.json({
-      cases: store
-        .q(
+      cases: (
+        await store.q(
           'SELECT e.*,c.text FROM evaluation_cases e JOIN claims c ON c.id=e.claim_id WHERE e.company_id=? ORDER BY e.created_at DESC',
           company(req),
         )
-        .map((x) => ({
-          ...x,
-          expected_sdgs: JSON.parse(x.expected_sdgs),
-          relevant_chunks: JSON.parse(x.relevant_chunks),
-        })),
-      runs: store
-        .q(
+      ).map((x) => ({
+        ...x,
+        expected_sdgs: JSON.parse(x.expected_sdgs),
+        relevant_chunks: JSON.parse(x.relevant_chunks),
+      })),
+      runs: (
+        await store.q(
           'SELECT * FROM evaluation_runs WHERE company_id=? ORDER BY created_at DESC',
           company(req),
         )
-        .map((x) => ({ ...x, metrics: JSON.parse(x.metrics_json) })),
+      ).map((x) => ({ ...x, metrics: JSON.parse(x.metrics_json) })),
     }),
   );
-  app.post('/api/evaluations/labels', reviewers, (req, res) => {
+  app.post('/api/evaluations/labels', reviewers, async (req, res) => {
     const b = z
       .object({
         claimId: z.string(),
@@ -1135,10 +1243,10 @@ export function createApp(config) {
         split: z.enum(['development', 'test']),
       })
       .parse(req.body);
-    owned('claims', b.claimId, company(req));
-    for (const id of b.relevantChunkIds) owned('chunks', id, company(req));
+    await owned('claims', b.claimId, company(req));
+    for (const id of b.relevantChunkIds) await owned('chunks', id, company(req));
     if (
-      store.get(
+      await store.get(
         'SELECT id FROM evaluation_cases WHERE company_id=? AND claim_id=?',
         company(req),
         b.claimId,
@@ -1146,7 +1254,7 @@ export function createApp(config) {
     )
       throw error('This claim already has an evaluation label.', 409);
     const id = uuid('label_');
-    store.insert('evaluation_cases', {
+    await store.insert('evaluation_cases', {
       id,
       company_id: company(req),
       claim_id: b.claimId,
@@ -1156,38 +1264,41 @@ export function createApp(config) {
       split: b.split,
       created_at: now(),
     });
-    store.audit(company(req), req.user.id, 'evaluation.labelled', 'claim', b.claimId, {
+    await store.audit(company(req), req.user.id, 'evaluation.labelled', 'claim', b.claimId, {
       split: b.split,
     });
     res.status(201).json({ id });
   });
-  app.post('/api/evaluations/run', reviewers, (req, res) => {
-    const metrics = evaluate(store, company(req)),
+  app.post('/api/evaluations/run', reviewers, async (req, res) => {
+    const metrics = await evaluate(store, company(req)),
       id = uuid('eval_');
-    store.insert('evaluation_runs', {
+    await store.insert('evaluation_runs', {
       id,
       company_id: company(req),
       metrics_json: JSON.stringify(metrics),
       created_at: now(),
     });
-    store.audit(company(req), req.user.id, 'evaluation.completed', 'evaluation', id, {
+    await store.audit(company(req), req.user.id, 'evaluation.completed', 'evaluation', id, {
       testCases: metrics.testCases,
     });
     res.json({ id, metrics });
   });
-  app.get('/api/export/:format', (req, res) => {
+  app.get('/api/export/:format', async (req, res) => {
     const reportId = req.query.reportId ? String(req.query.reportId) : null;
-    if (reportId) owned('reports', reportId, company(req));
-    const rows = exportRows(store, company(req), reportId);
-    store.audit(company(req), req.user.id, 'review.exported', 'export', reportId, {
+    if (reportId) await owned('reports', reportId, company(req));
+    const rows = await exportRows(store, company(req), reportId);
+    await store.audit(company(req), req.user.id, 'review.exported', 'export', reportId, {
       format: req.params.format,
       count: rows.length,
     });
     if (['docx', 'xlsx'].includes(req.params.format)) {
-      const c = store.get('SELECT id,name,is_example FROM companies WHERE id=?', company(req));
+      const c = await store.get(
+        'SELECT id,name,is_example FROM companies WHERE id=?',
+        company(req),
+      );
       return sendOfficeReport(
         res,
-        evidenceStatusReport(store, c, reportId, 'Company workspace'),
+        await evidenceStatusReport(store, c, reportId, 'Company workspace'),
         req.params.format,
         'carbonx-report-findings',
       );

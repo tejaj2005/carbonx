@@ -65,6 +65,11 @@ export function Dashboard() {
           </a>
         }
       />
+      <p className="fine-print">
+        Live stored-record counts · refreshed{' '}
+        {data.refreshedAt ? date(data.refreshedAt) : 'when connected'} · automatic refresh every 30
+        seconds.
+      </p>
       <Jobs jobs={data.jobs} />
       <div className="metric-grid">
         {cards.map(([title, value, Icon, foot]) => (
@@ -97,6 +102,8 @@ export function Dashboard() {
                   <BarChart data={covered}>
                     <CartesianGrid vertical={false} stroke="#edf1ed" />
                     <XAxis
+                      label={{ value: 'SDG goal', position: 'insideBottom', offset: -5 }}
+                      height={42}
                       dataKey="id"
                       tickFormatter={(x) => 'SDG ' + x}
                       tick={{ fontSize: 11 }}
@@ -104,6 +111,12 @@ export function Dashboard() {
                       tickLine={false}
                     />
                     <YAxis
+                      label={{
+                        value: 'Claims (count)',
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 10 },
+                      }}
                       allowDecimals={false}
                       tick={{ fontSize: 11 }}
                       axisLine={false}

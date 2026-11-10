@@ -12,7 +12,7 @@ import { createApp } from '../server/app.mjs';
 const root = path.resolve('.local');
 fs.mkdirSync(root, { recursive: true });
 const dataDir = fs.mkdtempSync(path.join(root, 'test-status-exports-'));
-const system = createApp({
+const system = await createApp({
     dataDir,
     aiEnabled: false,
     maxUpload: 1024 * 1024,
@@ -47,19 +47,19 @@ test('role-scoped company and government status exports', async (t) => {
   await idle();
   const aid = ar.body.user.companyId,
     bid = br.body.user.companyId;
-  store.run('UPDATE companies SET name=? WHERE id=?', 'Private B export sentinel', bid);
+  await store.run('UPDATE companies SET name=? WHERE id=?', 'Private B export sentinel', bid);
   const gr = await gov.post('/api/auth/register').send({
     company: 'Export Authority',
     name: 'Export Administrator',
     email: randomUUID() + '@test.invalid',
     password: 'Export-tests-only-9876',
   });
-  store.insert('government_admins', {
+  await store.insert('government_admins', {
     user_id: gr.body.user.id,
     authority: 'Government Oversight',
     demo_company_id: null,
   });
-  const report = store.get('SELECT id FROM reports WHERE company_id=?', aid);
+  const report = await store.get('SELECT id FROM reports WHERE company_id=?', aid);
   await t.test('anonymous and company accounts cannot use government downloads', async () => {
     assert.equal((await request(app).get('/api/government/export/json')).status, 401);
     assert.equal((await a.get('/api/government/export/json')).status, 403);
@@ -153,7 +153,10 @@ test('role-scoped company and government status exports', async (t) => {
         assert.equal((await client.get('/api/company/export/json')).body.company.id, aid);
         assert.equal((await client.get('/api/government/export/json')).status, 403);
       }
-      store.run("UPDATE company_registry SET licence_status='suspended' WHERE company_id=?", aid);
+      await store.run(
+        "UPDATE company_registry SET licence_status='suspended' WHERE company_id=?",
+        aid,
+      );
       assert.equal(
         (await a.get('/api/company/export/json')).body.registry.licence_status,
         'suspended',
@@ -175,7 +178,7 @@ test('role-scoped company and government status exports', async (t) => {
       assert.match(text, /Company status report/);
       assert.match(text, /SYNTHETIC EXAMPLE/);
       assert.match(text, /water consumption/);
-      store.run('UPDATE companies SET name=? WHERE id=?', '=EXTERNAL_FORMULA()', bid);
+      await store.run('UPDATE companies SET name=? WHERE id=?', '=EXTERNAL_FORMULA()', bid);
       const csv = await gov.get('/api/government/export/csv');
       assert.equal(csv.status, 200);
       const rows = parse(csv.text, { columns: true });
@@ -193,8 +196,8 @@ test('role-scoped company and government status exports', async (t) => {
   await t.test(
     'Word and Excel exports are genuine structured files with role-scoped data',
     async () => {
-      const facility = store.get('SELECT id FROM facilities WHERE company_id=?', aid);
-      store.insert('emission_samples', {
+      const facility = await store.get('SELECT id FROM facilities WHERE company_id=?', aid);
+      await store.insert('emission_samples', {
         id: 'export-sample',
         company_id: aid,
         facility_id: facility.id,
@@ -266,14 +269,13 @@ test('role-scoped company and government status exports', async (t) => {
         (
           await a.get(
             '/api/export/docx?reportId=' +
-              store.get('SELECT id FROM reports WHERE company_id=?', bid).id,
+              (await store.get('SELECT id FROM reports WHERE company_id=?', bid)).id,
           )
         ).status,
         404,
       );
     },
   );
-
   await t.test(
     'demo authority exports stay within its one synthetic company and revocation takes effect',
     async () => {
@@ -296,12 +298,12 @@ test('role-scoped company and government status exports', async (t) => {
         ).status,
         404,
       );
-      store.run('DELETE FROM government_admins WHERE user_id=?', gr.body.user.id);
+      await store.run('DELETE FROM government_admins WHERE user_id=?', gr.body.user.id);
       assert.equal((await gov.get('/api/government/export/json')).status, 403);
     },
   );
-  assert.ok(store.q("SELECT * FROM audit WHERE action LIKE '%exported'").length > 0);
+  assert.ok((await store.q("SELECT * FROM audit WHERE action LIKE '%exported'")).length > 0);
 });
-test.after(() => {
-  store.close();
+test.after(async () => {
+  await store.close();
 });

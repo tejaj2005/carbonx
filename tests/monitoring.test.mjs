@@ -141,7 +141,7 @@ const config = {
   monitoringEnabled: true,
   monitorPollMinutes: 30,
 };
-const system = createApp(config),
+const system = await createApp(config),
   app = system.app;
 async function account(name) {
   const client = request.agent(app);
@@ -157,7 +157,7 @@ async function account(name) {
 test('monitoring alerts are scoped, durable, deduplicated and delivered to both roles', async (t) => {
   const company = await account('Monitoring Company'),
     government = await account('Authority');
-  system.store.insert('government_admins', {
+  await system.store.insert('government_admins', {
     user_id: government.user.id,
     authority: 'Government Oversight',
     demo_company_id: null,
@@ -263,7 +263,10 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
             model: 'grok-4.7',
           };
         };
-        const alert = system.store.get('SELECT * FROM monitoring_alerts WHERE rule_id=?', ruleId);
+        const alert = await system.store.get(
+          'SELECT * FROM monitoring_alerts WHERE rule_id=?',
+          ruleId,
+        );
         const r = await company.client
           .post('/api/monitoring/alerts/' + alert.id + '/explain')
           .set('X-CSRF-Token', company.csrf)
@@ -271,7 +274,10 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
         assert.equal(r.status, 200);
         assert.ok(sent.evidence);
         assert.equal(sent.evidence.legalFinding, false);
-        const stored = system.store.get('SELECT * FROM monitoring_alerts WHERE id=?', alert.id);
+        const stored = await system.store.get(
+          'SELECT * FROM monitoring_alerts WHERE id=?',
+          alert.id,
+        );
         assert.equal(stored.status, alert.status);
         assert.equal(JSON.parse(stored.ai_json).advisoryOnly, true);
         const outsider = await account('Unrelated company');
@@ -291,31 +297,36 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
       }
     },
   );
-  await t.test('re-evaluation does not spam and missing data does not clear a breach', () => {
-    const count = system.store.get('SELECT COUNT(*) n FROM notifications').n;
-    system.monitoring.evaluateRules();
-    system.monitoring.evaluateRules();
-    assert.equal(system.store.get('SELECT COUNT(*) n FROM notifications').n, count);
-    system.store.run('UPDATE emission_samples SET quality=? WHERE id=?', 'invalid', sampleId);
-    system.monitoring.evaluateRules();
+  await t.test('re-evaluation does not spam and missing data does not clear a breach', async () => {
+    const count = (await system.store.get('SELECT COUNT(*) n FROM notifications')).n;
+    await system.monitoring.evaluateRules();
+    await system.monitoring.evaluateRules();
+    assert.equal((await system.store.get('SELECT COUNT(*) n FROM notifications')).n, count);
+    await system.store.run('UPDATE emission_samples SET quality=? WHERE id=?', 'invalid', sampleId);
+    await system.monitoring.evaluateRules();
     assert.equal(
-      system.store.get('SELECT status FROM monitoring_alerts WHERE rule_id=?', ruleId).status,
+      (await system.store.get('SELECT status FROM monitoring_alerts WHERE rule_id=?', ruleId))
+        .status,
       'open',
     );
-    system.store.run(
+    await system.store.run(
       'UPDATE emission_samples SET quality=?,value=? WHERE id=?',
       'valid',
       40,
       sampleId,
     );
-    system.monitoring.evaluateRules();
+    await system.monitoring.evaluateRules();
     assert.equal(
-      system.store.get('SELECT status FROM monitoring_alerts WHERE rule_id=?', ruleId).status,
+      (await system.store.get('SELECT status FROM monitoring_alerts WHERE rule_id=?', ruleId))
+        .status,
       'resolved',
     );
   });
   await t.test('notification read access cannot cross accounts', async () => {
-    const n = system.store.get('SELECT * FROM notifications WHERE user_id=?', company.user.id);
+    const n = await system.store.get(
+      'SELECT * FROM notifications WHERE user_id=?',
+      company.user.id,
+    );
     assert.equal(
       (
         await government.client
@@ -338,18 +349,18 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
   await t.test(
     'persistent polling retains last successful output and respects due times',
     async () => {
-      system.store.run(
+      await system.store.run(
         'UPDATE metro_cache SET next_run=?',
         new Date(Date.now() + 3600000).toISOString(),
       );
       const city = INDIA_METROS[0];
-      system.store.run(
+      await system.store.run(
         'UPDATE metro_cache SET next_run=? WHERE city_id=?',
         new Date(0).toISOString(),
         city.id,
       );
       let calls = 0;
-      const poller = monitoringTools(system.store, config, system.ai, {
+      const poller = await monitoringTools(system.store, config, system.ai, {
         model: async () => {
           calls++;
           return {
@@ -366,16 +377,15 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
       assert.equal(calls, 1);
       await poller.pollDue();
       assert.equal(calls, 1);
-      const first = system.store.get(
-        'SELECT model_json FROM metro_cache WHERE city_id=?',
-        city.id,
+      const first = (
+        await system.store.get('SELECT model_json FROM metro_cache WHERE city_id=?', city.id)
       ).model_json;
-      system.store.run(
+      await system.store.run(
         'UPDATE metro_cache SET next_run=? WHERE city_id=?',
         new Date(0).toISOString(),
         city.id,
       );
-      const failed = monitoringTools(system.store, config, system.ai, {
+      const failed = await monitoringTools(system.store, config, system.ai, {
         model: async () => {
           throw Error('offline');
         },
@@ -383,15 +393,18 @@ test('monitoring alerts are scoped, durable, deduplicated and delivered to both 
       });
       await failed.pollDue();
       assert.equal(
-        system.store.get('SELECT model_json FROM metro_cache WHERE city_id=?', city.id).model_json,
+        (await system.store.get('SELECT model_json FROM metro_cache WHERE city_id=?', city.id))
+          .model_json,
         first,
       );
-      assert.ok(system.store.get('SELECT error FROM metro_cache WHERE city_id=?', city.id).error);
+      assert.ok(
+        (await system.store.get('SELECT error FROM metro_cache WHERE city_id=?', city.id)).error,
+      );
     },
   );
 });
-test.after(() => {
-  system.store.close();
+test.after(async () => {
+  await system.store.close();
   assert.ok(path.resolve(folder).startsWith(local + path.sep));
   fs.rmSync(folder, { recursive: true, force: true });
 });

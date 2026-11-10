@@ -1,3 +1,4 @@
+import { ProfileSettings } from '../ProfileSettings';
 import React, { useState } from 'react';
 import {
   ArrowUpRight,
@@ -497,6 +498,7 @@ export function SettingsPage() {
         title="Clear configuration. Controlled access."
         description="Check the active processing mode, provider setup and company team."
       />
+      <ProfileSettings />
       <Panel title="India reference data">
         <p className="muted">{data.settings.referenceData?.notice}</p>
         <div className="provider-list">
@@ -571,29 +573,6 @@ export function SettingsPage() {
             Adapter availability means the connector is implemented. A provider request records its
             actual availability separately.
           </p>
-        </Panel>
-        <Panel title="Configure the server">
-          <p className="muted">
-            Set these variables in the local .env file, then restart CarbonX. API keys stay on the
-            server and are excluded from Git.
-          </p>
-          <pre className="config-code">
-            AI_PROVIDER=groq{'\n'}GROQ_API_KEY=your_key{'\n'}GROQ_MODEL=openai/gpt-oss-20b{'\n'}
-            ENABLE_MONITORING=true
-          </pre>
-          <p className="fine-print">
-            Add your key in the server .env file and restart CarbonX. Groq processes selected report
-            evidence using your Groq account.
-          </p>
-          <a
-            className="text-link"
-            href="https://console.groq.com/docs/quickstart"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Provider documentation
-            <ArrowUpRight size={14} />
-          </a>
         </Panel>
       </div>
       <Panel

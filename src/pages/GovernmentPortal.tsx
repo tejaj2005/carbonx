@@ -1,3 +1,5 @@
+import { GovernmentVerification } from '../GovernmentVerification';
+import { ProfileSettings } from '../ProfileSettings';
 import { ExportReport } from '../ExportReport';
 import React, { useEffect, useState } from 'react';
 import {
@@ -537,9 +539,9 @@ export function GovernmentPortal({ view }: { view: string }) {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <a href="#public" className="government-public-link">
+          <a href="#home" className="government-public-link">
             <Globe2 size={16} />
-            View public transparency
+            Home & public view
             <ArrowUpRight size={14} />
           </a>
           <div className="user">
@@ -569,6 +571,7 @@ export function GovernmentPortal({ view }: { view: string }) {
             <strong>{current}</strong>
           </span>
           <div className="topbar-actions">
+            <ProfileSettings compact />
             <NotificationBell />
             <button
               className="icon-button"
@@ -595,6 +598,10 @@ export function GovernmentPortal({ view }: { view: string }) {
             </div>
           )}
           <SectionTabs pages={section.pages} view={view} />
+          <p className="fine-print">
+            Records refreshed {data.refreshedAt ? date(data.refreshedAt) : 'when connected'} ·
+            automatic refresh every 30 seconds.
+          </p>
           {![
             'gov-registry',
             'gov-submissions',
@@ -685,7 +692,12 @@ export function GovernmentPortal({ view }: { view: string }) {
               </div>
             </>
           )}
-          {view === 'gov-monitoring' && <MonitoringPage />}
+          {view === 'gov-monitoring' && (
+            <>
+              <MonitoringPage />
+              <GovernmentVerification />
+            </>
+          )}
           {view === 'gov-registry' && (
             <>
               <Heading

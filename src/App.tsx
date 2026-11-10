@@ -1,3 +1,4 @@
+import { takeDestination } from './role-routing';
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import {
   LayoutDashboard,
@@ -62,7 +63,7 @@ const navigation = [
 ] as const;
 function Shell() {
   const { user, ready, loading, data, refresh, logout, claimId, signIn, toast } = useWorkspace();
-  const [view, setView] = useState(location.hash.slice(1) || 'public'),
+  const [view, setView] = useState(location.hash.slice(1) || 'home'),
     [menu, setMenu] = useState(false);
   useEffect(() => {
     const change = () => {
@@ -83,8 +84,14 @@ function Shell() {
       toast((e as Error).message);
     }
   }
+  useEffect(() => {
+    if (!ready || !user) return;
+    const target =
+      view === 'government-login' ? 'government' : view === 'company-login' ? 'company' : null;
+    if (target === user.portal) location.hash = takeDestination(target);
+  }, [ready, user, view]);
   if (!ready) return <Spinner />;
-  if (view === 'public') return <PublicPortal />;
+  if (view === 'public' || view === 'home') return <PublicPortal />;
   if (view === 'india')
     return (
       <Suspense fallback={<Spinner />}>
@@ -95,7 +102,12 @@ function Shell() {
     return (
       <PortalLogin key={view} portal={view === 'government-login' ? 'government' : 'company'} />
     );
-  if (!user) return <PortalLogin portal="company" />;
+  if (!user)
+    return (
+      <PortalLogin
+        portal={view === 'government' || view.startsWith('gov-') ? 'government' : 'company'}
+      />
+    );
   if (user.portal === 'government')
     return (
       <Suspense fallback={<Spinner />}>
@@ -151,7 +163,7 @@ function Shell() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <a href="#public" className="government-public-link">
+          <a href="#home" className="government-public-link">
             <Earth size={16} />
             Public transparency
             <ArrowRight size={14} />
