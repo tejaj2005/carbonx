@@ -2,9 +2,18 @@ node_modules/
 dist/
 .data/
 .local/
+# Local environment files may contain API credentials. Keep the checked-in template only.
 .env
 .env.*
 !.env.example
 coverage/
 *.log
 .DS_Store
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.bak
+*.backup
+*.pem
+*.key

@@ -2,7 +2,7 @@
 
 Current status update: Supabase Auth and private Storage are implemented, enabled and live verified. Six evidence files were migrated and checksum checked. PostgreSQL persistence/migration code is implemented and locally tested, but hosted database activation is blocked by TLS negotiation from this network. Official CPCB public sample mode is now live-verified: ten station records for each of eight metros, with partial coverage. An initial HTTP 429 cleared on retry. See [BACKEND_STATUS.md](BACKEND_STATUS.md) for the current configuration and next steps; older observations below are historical.
 
-The root .env is ignored by Git and Docker. .env.example contains blank placeholders only. The supplied credentials are now configured locally. For deployment, replace any credential shared in chat with a fresh value in .env.
+The root .env is ignored by Git and Docker. Copy .env.example to .env and add credentials locally. Never commit .env or paste production credentials into project documentation. If a credential has been exposed, revoke it and create a replacement.
 
 ## AI
 
@@ -11,7 +11,7 @@ The root .env is ignored by Git and Docker. .env.example contains blank placehol
 3. Restart CarbonX. Run npm.cmd run integrations:check. To request a small synthetic inference test, run npm.cmd run integrations:check -- --ai.
 4. Normal AI processing sends selected uploaded report text/evidence to Groq. The checker sends only a synthetic status prompt. Account free-tier rate limits, model availability and any enabled billing still apply.
 
-The Groq adapter uses https://api.groq.com/openai/v1. It cannot send a Groq credential to xAI. Grok/xAI remains an explicit optional alternative using AI_PROVIDER=xai, XAI_API_KEY and XAI_MODEL. The supplied Groq key is now saved in ignored .env and has been verified against Groq, including all four synthetic AI task checks.
+The Groq adapter uses https://api.groq.com/openai/v1. It cannot send a Groq credential to xAI. Grok/xAI remains an explicit optional alternative using AI_PROVIDER=xai, XAI_API_KEY and XAI_MODEL.
 
 AI supports source-quoted claim extraction, cited evidence answers, evidence-gathering actions and alert explanations. Server prompts are in server/prompts.mjs. JSON output is locally validated; citations must match supplied evidence. AI does not approve claims, change licences or establish a legal violation. Missing keys leave the baseline available. Search remains lexical; no extra embeddings API is assumed.
 
@@ -38,7 +38,7 @@ ISS position is an orbital coordinate feed, not imagery or a company-location va
 
 ## Supabase
 
-Supabase URL, server key and database connection are configured. HTTPS Data API/Auth health checks pass; PostgreSQL session-pooler connectivity times out, so database authentication remains unverified. See SUPABASE_SETUP.md. Application records still use SQLite; authentication and private evidence storage now use Supabase. Email is intentionally deferred.
+Configure Supabase URL and server credentials locally only when using its optional integrations. See SUPABASE_SETUP.md for current implementation and verification status. Email setup is optional.
 
 ## Run
 

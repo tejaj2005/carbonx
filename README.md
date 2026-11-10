@@ -77,7 +77,7 @@ A supported claim means consistency with the supplied historical evidence and im
 
 ## Groq AI setup
 
-The default AI provider is Groq. The ignored .env file is prepared: add a rotated GROQ_API_KEY and optionally DATA_GOV_IN_API_KEY, then restart CarbonX. The public weather, modelled air-quality and Sentinel-2 endpoints are already configured without keys. No local AI model is required.
+The default AI provider is Groq. Copy .env.example to .env and add GROQ_API_KEY and optionally DATA_GOV_IN_API_KEY locally, then restart CarbonX. The public weather, modelled air-quality and Sentinel-2 endpoints work without keys. No local AI model is required.
 
 Groq supports structured report extraction, cited evidence answers, action plans and alert explanations. It uses your Groq account limits/billing and sends selected report evidence to Groq when requested. Evidence retrieval remains lexical; no Groq embedding service is assumed. Missing credentials keep the labelled baseline active.
 
