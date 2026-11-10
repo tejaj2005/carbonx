@@ -1,3 +1,11 @@
+import { sendOfficeReport } from './office-exports.mjs';
+import {
+  companyStatusReport,
+  evidenceStatusReport,
+  oversightStatusReport,
+  sendStatusReport,
+} from './status-exports.mjs';
+import { exportRows, csvExport, writePdf } from './exports.mjs';
 import { z } from 'zod';
 import { uuid, now } from './db.mjs';
 import { hashPassword } from './auth.mjs';
@@ -281,6 +289,10 @@ export function governanceTools(store, config, auth) {
       const company = scoped(req, req.params.id);
       res.json({
         company: { ...company, ...registry(company.id) },
+        reports: store.q(
+          'SELECT id,name,year,status,archived,created_at FROM reports WHERE company_id=? ORDER BY created_at DESC',
+          company.id,
+        ),
         claims: store.q(
           'SELECT c.id,c.text,c.status,c.review_state,c.year,c.reason_json,p.number page_number,r.name report_name,r.id report_id FROM claims c JOIN reports r ON r.id=c.report_id JOIN chunks k ON k.id=c.chunk_id JOIN pages p ON p.id=k.page_id WHERE c.company_id=? AND r.archived=0',
           company.id,
@@ -304,7 +316,9 @@ export function governanceTools(store, config, auth) {
       );
       if (!report) throw fail('Report not found.', 404);
       res.set('Content-Type', report.mime);
-      res.set('Content-Disposition', 'inline');
+      res.set('Cache-Control', 'private, no-store');
+      if (req.query.download === '1') res.attachment(report.original_name);
+      else res.set('Content-Disposition', 'inline');
       res.sendFile(report.stored_name, { root: config.dataDir + '/uploads' });
     });
     app.post('/api/government/companies', async (req, res) => {
@@ -512,6 +526,75 @@ export function governanceTools(store, config, auth) {
       });
       res.json({ ok: true });
     });
+    app.get('/api/government/export/:format', (req, res) => {
+      const format = z.enum(['pdf', 'docx', 'xlsx', 'csv', 'json']).parse(req.params.format);
+      const companies = listCompanies(req);
+      const report = oversightStatusReport(store, companies, req.authority.authority);
+      store.audit(req.user.company_id, req.user.id, 'government.status_exported', 'export', null, {
+        format,
+        companyCount: companies.length,
+      });
+      if (['docx', 'xlsx'].includes(format))
+        return sendOfficeReport(res, report, format, 'carbonx-oversight-status');
+      sendStatusReport(res, report, format, 'carbonx-oversight-status');
+    });
+    app.get('/api/government/companies/:id/export/:format', (req, res) => {
+      const format = z.enum(['pdf', 'docx', 'xlsx', 'csv', 'json']).parse(req.params.format);
+      const company = scoped(req, req.params.id);
+      const report = companyStatusReport(
+        store,
+        company,
+        registry(company.id),
+        req.authority.authority,
+      );
+      store.audit(company.id, req.user.id, 'government.company_exported', 'company', company.id, {
+        format,
+      });
+      if (['docx', 'xlsx'].includes(format))
+        return sendOfficeReport(res, report, format, 'carbonx-company-status');
+      sendStatusReport(res, report, format, 'carbonx-company-status');
+    });
+    app.get('/api/government/companies/:id/reports/:reportId/export/:format', (req, res) => {
+      const format = z.enum(['pdf', 'docx', 'xlsx', 'csv', 'json']).parse(req.params.format);
+      const company = scoped(req, req.params.id);
+      const report = store.get(
+        'SELECT id,name FROM reports WHERE company_id=? AND id=?',
+        company.id,
+        req.params.reportId,
+      );
+      if (!report) throw fail('Report not found.', 404);
+      const rows = exportRows(store, company.id, report.id);
+      store.audit(company.id, req.user.id, 'government.report_exported', 'report', report.id, {
+        format,
+        count: rows.length,
+      });
+      res.set('Cache-Control', 'private, no-store');
+      if (['docx', 'xlsx'].includes(format))
+        return sendOfficeReport(
+          res,
+          evidenceStatusReport(store, company, report.id, req.authority.authority),
+          format,
+          'carbonx-report-findings',
+        );
+      if (format === 'pdf') return writePdf(res, rows, company.name, Boolean(company.is_example));
+      res.set(
+        'Content-Disposition',
+        'attachment; filename="carbonx-report-findings.' + format + '"',
+      );
+      if (format === 'csv') return res.type('text/csv').send(csvExport(rows));
+      res.json({
+        company: company.name,
+        isExample: Boolean(company.is_example),
+        generatedAt: now(),
+        report,
+        claims: rows.map(({ sdgs_json, reason_json, comparison_json, ...row }) => ({
+          ...row,
+          sdgs: JSON.parse(sdgs_json),
+          reasons: JSON.parse(reason_json),
+          comparison: JSON.parse(comparison_json),
+        })),
+      });
+    });
     app.get('/api/government/export', (req, res) => {
       const rows = listCompanies(req),
         keys = [
@@ -544,6 +627,20 @@ export function governanceTools(store, config, auth) {
           error: 'Submissions are paused while this CarbonX licence is ' + r.licence_status + '.',
         });
       next();
+    });
+    app.get('/api/company/export/:format', (req, res) => {
+      const format = z.enum(['pdf', 'docx', 'xlsx', 'csv', 'json']).parse(req.params.format);
+      const company = store.get(
+        'SELECT id,name,is_example FROM companies WHERE id=?',
+        req.user.company_id,
+      );
+      const report = companyStatusReport(store, company, registry(company.id), 'Company workspace');
+      store.audit(company.id, req.user.id, 'company.status_exported', 'company', company.id, {
+        format,
+      });
+      if (['docx', 'xlsx'].includes(format))
+        return sendOfficeReport(res, report, format, 'carbonx-company-status');
+      sendStatusReport(res, report, format, 'carbonx-company-status');
     });
     app.get('/api/company/overview', (req, res) =>
       res.json({

@@ -1,3 +1,4 @@
+import { ExportReport } from '../ExportReport';
 import React, { useEffect, useState } from 'react';
 import {
   FileText,
@@ -353,10 +354,11 @@ function ReportDetail({ id, onClose }: { id: string; onClose: () => void }) {
           {report.warning && <div className="callout warning">{report.warning}</div>}
           <div className="button-row">
             <SourceLink reportId={id} label="Open original report" />
-            <a className="button secondary" href={'/api/export/pdf?reportId=' + id}>
-              <Download size={15} />
-              Export findings
-            </a>
+            <ExportReport
+              url="/api/export"
+              query={'reportId=' + encodeURIComponent(id)}
+              label="Export findings"
+            />
             <button
               className="button secondary"
               disabled={user?.role === 'reviewer'}

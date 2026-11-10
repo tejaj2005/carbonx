@@ -111,3 +111,7 @@ The complete suite passed 59 checks after adding xAI/Grok request, configuration
 - npm.cmd run build: TypeScript and Vite production build passed.
 - npm.cmd run integrations:check: live weather, air-quality model and Earth Search catalogue connected. CPCB and Groq report key required; Copernicus is optional and not selected. No AI inference or authenticated Copernicus imagery was claimed.
 - Active demo data moved to data/demo-data.json. Historical Infosys India electricity-share references added in data/reference-data.json with source URLs and explicit scope. No real company approval or facility monitoring record was fabricated.
+
+## Role based status exports and Office templates
+
+Full suite: 77 tests including company/government isolation, scope revocation, suspended-account read access, real PDF output, CSV formula neutralization, DOCX text/table generation and XLSX numeric types and literal source strings. Production build passed. Synthetic company and government Word files were rendered through LibreOffice and inspected; generated Excel summaries were rendered from the XLSX files. Exports preserve source periods, units, limitations and human-review status. No external email or licensing action is performed.

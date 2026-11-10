@@ -21,6 +21,8 @@
   "dependencies": {
     "cookie-parser": "1.4.7",
     "csv-parse": "7.0.3",
+    "docx": "9.15.3",
+    "exceljs": "4.4.0",
     "express": "5.3.0",
     "express-rate-limit": "8.7.4",
     "geotiff": "3.0.5",
@@ -48,5 +50,10 @@
     "supertest": "7.3.2",
     "typescript": "7.0.2",
     "vite": "8.3.7"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   }
 }

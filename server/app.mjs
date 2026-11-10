@@ -1,3 +1,5 @@
+import { sendOfficeReport } from './office-exports.mjs';
+import { evidenceStatusReport } from './status-exports.mjs';
 import { satelliteProvider } from './sentinelhub.mjs';
 const demoData = JSON.parse(
   fs.readFileSync(new URL('../data/demo-data.json', import.meta.url), 'utf8'),
@@ -1153,6 +1155,15 @@ export function createApp(config) {
       format: req.params.format,
       count: rows.length,
     });
+    if (['docx', 'xlsx'].includes(req.params.format)) {
+      const c = store.get('SELECT id,name,is_example FROM companies WHERE id=?', company(req));
+      return sendOfficeReport(
+        res,
+        evidenceStatusReport(store, c, reportId, 'Company workspace'),
+        req.params.format,
+        'carbonx-report-findings',
+      );
+    }
     if (req.params.format === 'csv') {
       res.set('Content-Disposition', 'attachment; filename="carbonx-claims.csv"');
       return res.type('text/csv').send(csvExport(rows));
@@ -1168,7 +1179,7 @@ export function createApp(config) {
     }
     if (req.params.format === 'pdf')
       return writePdf(res, rows, req.user.company_name, Boolean(req.user.is_example));
-    throw error('Choose csv, json or pdf.', 404);
+    throw error('Choose Word, Excel, PDF, CSV or JSON.', 404);
   });
   app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
   const errorHandler = (e, _req, res, _next) => {

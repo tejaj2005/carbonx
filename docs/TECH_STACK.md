@@ -78,3 +78,5 @@ Groq and optional xAI use the existing OpenAI-compatible HTTP client; the depend
 Optional Copernicus site context uses fixed CDSE OAuth/Catalog/Statistics endpoints, projected UTM bounds via proj4, 10 m daily mosaic sampling and explicit coverage rejection. The previous Earth Search/GeoTIFF implementation stays the default until OAuth credentials are supplied.
 
 See SUPABASE_SETUP.md for future PostgreSQL/Auth/Storage migration. Adding four environment values does not connect Supabase today. In-app notices persist; email is deferred.
+
+Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.

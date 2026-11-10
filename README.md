@@ -153,3 +153,5 @@ The UI simulation does not create monitoring observations or send email. Backend
 The [UI review record](docs/UI_REVIEW.md) lists route, control, mobile and provider checks performed for the presentation cleanup.
 
 See docs/ENV_SETUP.md for Groq and optional Copernicus OAuth setup, docs/SUPABASE_SETUP.md for the four reserved backend values, and docs/DEMO_DATA.md for the editable synthetic/reference source files. Supabase is not connected by adding placeholders; SQLite remains active. Email is deferred.
+
+Role-based Word, Excel, PDF, CSV and JSON exports are implemented for overall government status, individual companies and selected reports. Word uses structured tables; Excel uses filtered sheets with typed values and clear provenance. See docs/REPORT_EXPORTS.md (REPORT_EXPORTS.md from this docs folder). Runtime template libraries: docx 9.15.3 and ExcelJS 4.4.0; ExcelJS uuid is pinned to 11.1.1 to resolve its advisory.

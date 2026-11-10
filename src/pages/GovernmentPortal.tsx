@@ -1,3 +1,4 @@
+import { ExportReport } from '../ExportReport';
 import React, { useEffect, useState } from 'react';
 import {
   Landmark,
@@ -335,6 +336,10 @@ function CompanyDetail({
         </button>
       </div>
       <div className="button-row admin-detail-actions">
+        <ExportReport
+          url={'/api/government/companies/' + encodeURIComponent(company.id) + '/export'}
+          label="Export company report"
+        />
         <button
           className="button secondary"
           onClick={() => onAction({ kind: 'case', item: company })}
@@ -360,6 +365,51 @@ function CompanyDetail({
       {error && <p className="error-text">{error}</p>}
       {data ? (
         <>
+          <Panel title="Company reports">
+            {data.reports.length ? (
+              <div className="submission-list">
+                {data.reports.map((r: Item) => (
+                  <article key={r.id}>
+                    <div className="row-between">
+                      <b>{r.name}</b>
+                      <Badge value={r.status} />
+                    </div>
+                    <p className="muted">
+                      FY{r.year} · {r.archived ? 'Archived' : 'Active'}
+                    </p>
+                    <div className="button-row">
+                      <a
+                        className="button secondary"
+                        target="_blank"
+                        rel="noreferrer"
+                        href={
+                          '/api/government/companies/' +
+                          encodeURIComponent(company.id) +
+                          '/reports/' +
+                          encodeURIComponent(r.id) +
+                          '/file?download=1'
+                        }
+                      >
+                        Download source report <ArrowUpRight size={14} />
+                      </a>
+                      <ExportReport
+                        url={
+                          '/api/government/companies/' +
+                          encodeURIComponent(company.id) +
+                          '/reports/' +
+                          encodeURIComponent(r.id) +
+                          '/export'
+                        }
+                        label="Export findings"
+                      />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No reports uploaded.</p>
+            )}
+          </Panel>
           <Panel title="Claims extracted from company reports">
             {data.claims.length ? (
               <div className="government-claim-list">
@@ -559,10 +609,13 @@ export function GovernmentPortal({ view }: { view: string }) {
                 title="A clear view. An accountable decision."
                 description="Follow company evidence, manage the review queue and keep every administrative action traceable."
                 action={
-                  <button className="button primary" onClick={() => setAction({ kind: 'case' })}>
-                    <Plus size={16} />
-                    Record action
-                  </button>
+                  <div className="button-row">
+                    <ExportReport url="/api/government/export" label="Export overall status" />
+                    <button className="button primary" onClick={() => setAction({ kind: 'case' })}>
+                      <Plus size={16} />
+                      Record action
+                    </button>
+                  </div>
                 }
               />
               <div className="metric-grid">
@@ -641,10 +694,7 @@ export function GovernmentPortal({ view }: { view: string }) {
                 description="Inspect uploaded evidence, update licence records and control public-summary publication."
                 action={
                   <div className="button-row">
-                    <a className="button secondary" href="/api/government/export">
-                      <Download size={16} />
-                      Export register
-                    </a>
+                    <ExportReport url="/api/government/export" label="Export overall status" />
                     <button
                       className="button primary"
                       disabled={g.demo}

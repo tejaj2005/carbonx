@@ -1,3 +1,4 @@
+import { ExportReport } from '../ExportReport';
 import React, { useState } from 'react';
 import {
   Building2,
@@ -274,14 +275,17 @@ export function CompanyPortal() {
         title="Make your claim. Show your evidence."
         description="Send claims to Government Oversight, record usage and choose what the public can see."
         action={
-          <button
-            className="button primary"
-            disabled={!canSubmit}
-            onClick={() => setModal('claim')}
-          >
-            <FilePlus2 size={16} />
-            Submit a claim
-          </button>
+          <div className="button-row">
+            <ExportReport url="/api/company/export" label="Export company report" />
+            <button
+              className="button primary"
+              disabled={!canSubmit}
+              onClick={() => setModal('claim')}
+            >
+              <FilePlus2 size={16} />
+              Submit a claim
+            </button>
+          </div>
         }
       />
       <section className={'licence-banner ' + (paused ? 'licence-paused' : '')}>
