@@ -46,16 +46,22 @@ export function Recommendations() {
         title="Turn findings into follow-through."
         description="Prioritise evidence gaps, resolve discrepancies and keep action ownership visible."
         action={
-          <button
-            className="button secondary"
-            disabled={
-              busy || !data.settings.providers.hostedAI?.configured || user?.role === 'analyst'
-            }
-            onClick={() => void generate()}
-          >
-            <Sparkles size={16} />
-            {busy ? 'Generating…' : 'AI-assisted action plan'}
-          </button>
+          !data.settings.providers.hostedAI?.configured ? (
+            <a className="button secondary" href="#settings">
+              Set up local AI
+            </a>
+          ) : (
+            <button
+              className="button secondary"
+              disabled={
+                busy || !data.settings.providers.hostedAI?.configured || user?.role === 'analyst'
+              }
+              onClick={() => void generate()}
+            >
+              <Sparkles size={16} />
+              {busy ? 'Generating…' : 'AI-assisted action plan'}
+            </button>
+          )
         }
       />
       <div className="scope-note">
@@ -127,7 +133,7 @@ export function Recommendations() {
   );
 }
 export function Evaluation() {
-  const { data, toast, refresh } = useWorkspace();
+  const { data, user, toast, refresh } = useWorkspace();
   const [busy, setBusy] = useState(false);
   const e = data.evaluations,
     latest = e.runs[0]?.metrics;
@@ -152,7 +158,16 @@ export function Evaluation() {
         action={
           <button
             className="button primary"
-            disabled={busy || !e.cases.some((c: Item) => c.split === 'test')}
+            disabled={
+              busy || user?.role === 'analyst' || !e.cases.some((c: Item) => c.split === 'test')
+            }
+            title={
+              user?.role === 'analyst'
+                ? 'A reviewer or owner runs evaluation'
+                : !e.cases.some((c: Item) => c.split === 'test')
+                  ? 'Add independent held-out test labels from claim reviews first'
+                  : undefined
+            }
             onClick={() => void run()}
           >
             <FlaskConical size={16} />

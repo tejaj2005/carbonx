@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useId } from 'react';
 import {
   FileText,
   ScanSearch,
@@ -53,26 +53,37 @@ const steps = [
   },
 ];
 export function SatelliteScene({ scanning = true }: { scanning?: boolean }) {
+  const scene = useId().replaceAll(':', '').replaceAll('«', '').replaceAll('»', '');
+  const planetId = 'planet-' + scene,
+    clipId = 'earth-' + scene,
+    beamId = 'beam-' + scene;
   return (
     <div className={'satellite-scene ' + (scanning ? 'scanning' : '')} aria-hidden="true">
       <div className="scene-stars" />
       <div className="planet-halo" />
       <svg viewBox="0 0 640 340">
         <defs>
-          <radialGradient id="planet">
+          <radialGradient id={planetId}>
             <stop offset="0" stopColor="#386e5a" />
             <stop offset="1" stopColor="#153e35" />
           </radialGradient>
-          <clipPath id="earthClip">
+          <clipPath id={clipId}>
             <ellipse cx="320" cy="245" rx="238" ry="158" />
           </clipPath>
-          <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={beamId} x1="0" y1="0" x2="0" y2="1">
             <stop stopColor="#d6eea8" stopOpacity=".5" />
             <stop offset="1" stopColor="#d6eea8" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <ellipse cx="320" cy="245" rx="238" ry="158" fill="url(#planet)" stroke="#56846d" />
-        <g clipPath="url(#earthClip)" className="planet-grid">
+        <ellipse
+          cx="320"
+          cy="245"
+          rx="238"
+          ry="158"
+          fill={'url(#' + planetId + ')'}
+          stroke="#56846d"
+        />
+        <g clipPath={'url(#' + clipId + ')'} className="planet-grid">
           <path
             d="M80 195H560M80 245H560M80 295H560M320 80V405M220 90Q150 240 220 395M420 90Q490 240 420 395M120 145Q320 245 520 145M110 330Q320 230 530 330"
             fill="none"
@@ -98,7 +109,7 @@ export function SatelliteScene({ scanning = true }: { scanning?: boolean }) {
           transform="rotate(-16 320 210)"
         />
         <g className="orbit-satellite">
-          <path d="M323 76L288 242 378 244Z" fill="url(#beam)" />
+          <path d="M323 76L288 242 378 244Z" fill={'url(#' + beamId + ')'} />
           <rect x="303" y="58" width="36" height="24" rx="4" fill="#e8f2d5" />
           <path
             d="M283 50L300 54 292 83 275 79ZM344 57L362 62 354 90 337 85Z"
@@ -166,7 +177,7 @@ export function AirScene({
             ? 'Simulated concentration · not a measurement'
             : value == null
               ? 'Awaiting a recorded provider result'
-              : 'Latest stored provider observation'}
+              : 'Latest stored regional model result'}
         </p>
       </div>
     </div>

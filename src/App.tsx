@@ -51,18 +51,14 @@ const SettingsPage = lazy(() =>
 const ClaimDetail = lazy(() => import('./ClaimDetail').then((m) => ({ default: m.ClaimDetail })));
 import './styles.css';
 import './portals.css';
+import { companySections } from './navigation';
+import { SectionTabs } from './components';
 const navigation = [
   ['overview', 'Overview', LayoutDashboard],
-  ['submissions', 'Submissions & public page', ShieldCheck],
-  ['reports', 'Report library', FileText],
-  ['claims', 'Claims & SDGs', ScanSearch],
-  ['evidence', 'Evidence explorer', BookOpen],
-  ['history', 'Historical data', Database],
-  ['environment', 'Environment', Earth],
-  ['monitoring', 'Monitoring & notifications', Activity],
-  ['recommendations', 'Action plans', ClipboardCheck],
-  ['evaluations', 'Evaluation', FlaskConical],
-  ['audit', 'Activity log', Activity],
+  ['reports', 'Reports & evidence', FileText],
+  ['monitoring', 'Monitoring', Activity],
+  ['submissions', 'Submissions & actions', ShieldCheck],
+  ['history', 'Records & evaluation', Database],
   ['settings', 'Settings', Settings],
 ] as const;
 function Shell() {
@@ -78,6 +74,9 @@ function Shell() {
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
   async function switchDemo() {
     try {
       signIn(await mutate('/auth/demo-switch', { portal: 'government' }));
@@ -119,7 +118,9 @@ function Shell() {
     audit: <Audit />,
     settings: <SettingsPage />,
   };
-  const current = navigation.find((n) => n[0] === view)?.[1] || 'Overview';
+  const section =
+    companySections.find((s) => s.pages.some((p) => p[0] === view)) || companySections[0];
+  const current = section.title;
   return (
     <div className="app-shell">
       <aside className={'sidebar ' + (menu ? 'sidebar-open' : '')}>
@@ -135,22 +136,21 @@ function Shell() {
         </div>
         <span className="nav-label">INTELLIGENCE WORKSPACE</span>
         <nav>
-          {navigation
-            .filter((n) => n[0] !== 'audit' || user.role !== 'analyst')
-            .map(([id, name, Icon]) => (
-              <a
-                href={'#' + id}
-                onClick={() => setMenu(false)}
-                className={view === id ? 'active' : ''}
-                key={id}
-              >
-                <Icon size={18} />
-                {name}
-                {id === 'claims' && data.dashboard.stats.needsReview > 0 && (
-                  <b>{data.dashboard.stats.needsReview}</b>
-                )}
-              </a>
-            ))}
+          {navigation.map(([id, name, Icon]) => (
+            <a
+              href={'#' + id}
+              onClick={() => setMenu(false)}
+              className={section.id === id ? 'active' : ''}
+              aria-current={section.id === id ? 'page' : undefined}
+              key={id}
+            >
+              <Icon size={18} />
+              {name}
+              {id === 'reports' && data.dashboard.stats.needsReview > 0 && (
+                <b>{data.dashboard.stats.needsReview}</b>
+              )}
+            </a>
+          ))}
         </nav>
         <div className="sidebar-bottom">
           <a href="#public" className="government-public-link">
@@ -162,7 +162,7 @@ function Shell() {
             <span />
             <strong>
               {data.settings.providers.hostedAI?.configured
-                ? 'Hosted AI configured'
+                ? 'AI configured'
                 : 'Evidence review ready'}
             </strong>
             <small>
@@ -245,6 +245,10 @@ function Shell() {
               </button>
             </div>
           )}
+          <SectionTabs
+            pages={section.pages.filter((p) => p[0] !== 'audit' || user.role !== 'analyst')}
+            view={view}
+          />
           <Suspense fallback={<Spinner />}>{pages[view] || pages.overview}</Suspense>
         </div>
         <footer className="app-footer">
@@ -276,3 +280,5 @@ export default function App() {
 }
 
 import './monitoring.css';
+
+import './presentation.css';

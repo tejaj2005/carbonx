@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SatelliteScene } from '../VisualJourney';
+import { VerificationStudio } from '../VerificationStudio';
 import {
   ResponsiveContainer,
   LineChart,
@@ -76,6 +77,7 @@ export function Evidence() {
               maxLength={1000}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search report evidence"
               placeholder="How did water consumption change between reporting years?"
             />
             <button className="button primary" disabled={busy}>
@@ -123,9 +125,18 @@ export function Evidence() {
               <p className="answer-text">{result.answer.answer}</p>
               <div className="citation-chips">
                 {result.answer.citations.map((id: string, i: number) => (
-                  <a href={'#passage-' + id} key={id}>
+                  <button
+                    type="button"
+                    className="text-link"
+                    onClick={() =>
+                      document
+                        .getElementById('passage-' + id)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                    key={id}
+                  >
                     Source {i + 1}
-                  </a>
+                  </button>
                 ))}
               </div>
             </Panel>
@@ -379,7 +390,7 @@ function HistoricalChart({ observations }: { observations: Item[] }) {
       action={
         <select
           aria-label="Historical chart series"
-          style={{ maxWidth: 420 }}
+          style={{ maxWidth: 'min(420px, 100%)', minWidth: 0 }}
           value={group.key}
           onChange={(e) => setSelected(e.target.value)}
         >
@@ -670,6 +681,12 @@ export function Environment() {
             Loading context sends this selected site’s coordinates and date window to the named
             public data providers.
           </p>
+          <VerificationStudio
+            facility={facility}
+            atmosphere={atmosphere}
+            satellite={satellite}
+            rules={data.monitoring.rules}
+          />
           <Panel
             title="Air quality & weather"
             kicker="OPEN-METEO"
@@ -719,7 +736,10 @@ export function Environment() {
                               </p>
                             </>
                           )}
-                          <small>Provider time: {s.data.current?.time || 'Not reported'}</small>
+                          <small>
+                            Provider time ({s.data.timezone || 'UTC'}):{' '}
+                            {s.data.current?.time || 'Not reported'}
+                          </small>
                         </>
                       ) : (
                         <p className="error-text">{s.error}</p>
@@ -875,10 +895,12 @@ export function Environment() {
         <Empty
           title="Choose a site to begin"
           action={
-            <button className="button primary" onClick={() => setAdd(true)}>
-              <MapPin size={16} />
-              Add a facility
-            </button>
+            user?.role !== 'reviewer' && (
+              <button className="button primary" onClick={() => setAdd(true)}>
+                <MapPin size={16} />
+                Add a facility
+              </button>
+            )
           }
         >
           Site coordinates and an explicit reporting boundary keep context attached to the correct

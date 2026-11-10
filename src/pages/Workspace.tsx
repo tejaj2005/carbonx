@@ -321,7 +321,7 @@ function UploadReport({ onClose }: { onClose: () => void }) {
   );
 }
 function ReportDetail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { toast, refresh, openClaim } = useWorkspace();
+  const { toast, refresh, openClaim, user } = useWorkspace();
   const [report, setReport] = useState<Item | null>(null),
     [page, setPage] = useState<Item | null>(null);
   useEffect(() => {
@@ -357,7 +357,14 @@ function ReportDetail({ id, onClose }: { id: string; onClose: () => void }) {
               <Download size={15} />
               Export findings
             </a>
-            <button className="button secondary" onClick={rerun}>
+            <button
+              className="button secondary"
+              disabled={user?.role === 'reviewer'}
+              title={
+                user?.role === 'reviewer' ? 'An owner or analyst can reprocess reports' : undefined
+              }
+              onClick={rerun}
+            >
               Process a new version
             </button>
           </div>
@@ -523,7 +530,8 @@ export function Reports() {
           <Empty
             title={search ? 'No matching reports' : 'Build your report library'}
             action={
-              !search && (
+              !search &&
+              user?.role !== 'reviewer' && (
                 <button className="button primary" onClick={() => setUpload(true)}>
                   <Upload size={16} />
                   Upload a report

@@ -259,3 +259,16 @@ export function NotificationBell() {
     </a>
   );
 }
+
+export function SectionTabs({ pages, view }: { pages: string[][]; view: string }) {
+  if (pages.length < 2) return null;
+  return (
+    <nav className="section-tabs" aria-label="Section views">
+      {pages.map(([id, title]) => (
+        <a href={'#' + id} key={id} aria-current={view === id ? 'page' : undefined}>
+          {title}
+        </a>
+      ))}
+    </nav>
+  );
+}

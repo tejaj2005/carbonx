@@ -96,3 +96,7 @@ Responsive inspection covered desktop and 390 by 844 mobile override. The mobile
 The viewport override was reset. The India observatory tab remains open as the deliverable, and the local server remains running. The screenshot artifact is a visual check, not proof of independent sensor accuracy or production deployment.
 
 See production-readiness.md for missing credentials/data and deployment requirements. Full production readiness is not claimed.
+
+## Presentation cleanup follow-up
+
+See [UI review](UI_REVIEW.md) for the 23-route desktop/mobile inspection, visual studio checks, real site-provider requests, observed mobile overflow and scroll-position fixes, and the 53-test regression run after navigation consolidation.

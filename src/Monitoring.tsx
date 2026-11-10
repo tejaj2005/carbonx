@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { VerificationStudio, SourceInventory, MetroComparison } from './VerificationStudio';
 import {
   Bell,
   CheckCheck,
@@ -498,13 +499,15 @@ export function MonitoringPage() {
         title="Observe the data. Follow up with evidence."
         description="Eight metropolitan cities, source-aware monitoring and accountable alerts for companies and Government Oversight."
         action={
-          <button
-            className="button primary"
-            onClick={() => setModal(government ? 'rule' : 'sample')}
-          >
-            <Plus size={16} />
-            {government ? 'Configure emissions threshold' : 'Submit emissions observation'}
-          </button>
+          (government || user?.role !== 'reviewer') && (
+            <button
+              className="button primary"
+              onClick={() => setModal(government ? 'rule' : 'sample')}
+            >
+              <Plus size={16} />
+              {government ? 'Configure emissions threshold' : 'Submit emissions observation'}
+            </button>
+          )
         }
       />
       <div className="monitoring-disclaimer">
@@ -515,6 +518,14 @@ export function MonitoringPage() {
           reference. Alerts never suspend a licence automatically.
         </p>
       </div>
+      <EmissionOverview rules={m.rules} facilities={m.facilities} />
+      <details className="studio-disclosure">
+        <summary>
+          Open the visual verification studio{' '}
+          <span>Location → air quality → satellite → emissions → review</span>
+        </summary>
+        <VerificationStudio cities={m.cities} rules={m.rules} />
+      </details>
       <Panel title="Your notifications" kicker="DELIVERED IN CARBONX">
         {m.notifications.length ? (
           <div className="notification-list">
@@ -672,14 +683,12 @@ export function MonitoringPage() {
                     ))}
                   </div>
                 )}
-                <button
-                  className="text-link"
-                  disabled={busy || !m.ai.configured}
-                  onClick={() => void explain(a.id)}
-                >
-                  <Sparkles size={14} />
-                  Explain with local AI
-                </button>
+                {m.ai.configured && (
+                  <button className="text-link" disabled={busy} onClick={() => void explain(a.id)}>
+                    <Sparkles size={14} />
+                    Explain with local AI
+                  </button>
+                )}
               </article>
             ))}
           </div>
@@ -811,7 +820,10 @@ export function PublicIndia() {
           </p>
         </div>
         {error && <p className="callout warning">{error}</p>}
+        {data && <VerificationStudio cities={data.cities} />}
+        {data && <MetroComparison cities={data.cities} />}
         <CityCards cities={data?.cities || []} select={setCity} />
+        <SourceInventory />
         {!data && (
           <Empty title="Loading metropolitan sources">No sample readings are substituted.</Empty>
         )}
@@ -848,5 +860,85 @@ export function PublicIndia() {
       </main>
       {city && <CityDetail city={city} close={() => setCity(null)} />}
     </div>
+  );
+}
+
+function EmissionOverview({ rules, facilities }: { rules: Item[]; facilities: Item[] }) {
+  const active = rules.filter((r) => r.active),
+    above = active.filter((r) => r.assessment.status === 'above_threshold'),
+    assessed = active.filter((r) => r.assessment.status !== 'not_assessed');
+  return (
+    <section className="emissions-overview panel">
+      <div className="row-between">
+        <div>
+          <span className="eyebrow">FACILITY EMISSIONS · COMPANY-REPORTED EVIDENCE</span>
+          <h2>Readings against the configured thresholds.</h2>
+        </div>
+        <span className="source-chip light">No automatic licence action</span>
+      </div>
+      <div className="emission-stats">
+        <div>
+          <strong>{active.length}</strong>
+          <span>Active thresholds</span>
+        </div>
+        <div>
+          <strong>{above.length}</strong>
+          <span>Need follow-up</span>
+        </div>
+        <div>
+          <strong>{active.length - assessed.length}</strong>
+          <span>Not assessed</span>
+        </div>
+      </div>
+      {active.length ? (
+        <div className="emission-rows">
+          {active.map((r) => {
+            const usable = r.assessment.status !== 'not_assessed',
+              ratio = usable && r.sample ? (Number(r.sample.value) / r.threshold) * 100 : 0;
+            return (
+              <div className="emission-row" key={r.id}>
+                <div>
+                  <strong>
+                    {facilities.find((f) => f.id === r.facility_id)?.name || 'Facility'}
+                  </strong>
+                  <small>
+                    {metrics.find(([id]) => id === r.metric)?.[1]} · {r.window_minutes}-minute
+                    period
+                  </small>
+                </div>
+                <div className="emission-ratio">
+                  <i
+                    style={{
+                      width: Math.min(100, ratio / 1.5) + '%',
+                      background: r.assessment.status === 'above_threshold' ? '#bd704c' : '#3f7955',
+                    }}
+                  />
+                  <span style={{ left: 100 / 1.5 + '%' }} title="Configured threshold" />
+                </div>
+                <div>
+                  <b>
+                    {usable && r.sample ? number(r.sample.value, 2) + ' ' + r.unit : 'Not assessed'}
+                  </b>
+                  <small>
+                    Threshold {number(r.threshold, 2)} {r.unit}
+                  </small>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="chart-note">
+          No facility thresholds yet. Government Oversight supplies the applicable reference;
+          company observations are assessed only when the unit, basis, quality and full period
+          match.
+        </p>
+      )}
+      <p className="chart-note">
+        Each marker is that row's configured threshold. Bars show a relative comparison, capped at
+        150%. Different pollutants and units are never added together. Stale or missing readings
+        remain unassessed.
+      </p>
+    </section>
   );
 }

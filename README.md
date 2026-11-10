@@ -145,3 +145,16 @@ The CI workflow repeats tests and the production build on Node.js 24. See [valid
 No reusable API key was found in the supplied ZIP, its reachable public Git history or inspected media. The OpenAI and Gmail exports contain n8n credential references only.
 
 The three HTTP integrations were ISS orbital position, Open-Meteo air quality and Open-Meteo weather. ISS position is not site satellite imagery; weather is not measured company energy use. CarbonX uses an actual Sentinel-2 imagery implementation for site context and requires historical company records for numerical comparisons.
+
+## Presentation, data and backend reference
+
+Related views are grouped into six company sections and four government sections. The India observatory includes a coordinate-to-review visual verification studio, replay of stored provider results, a separate synthetic emissions simulator, a pollutant comparison and a source catalogue. Existing view links remain usable.
+
+- [API features, data origins and demo inventory](docs/API_AND_DATA_SOURCES.md)
+- [Technology stack and runtime responsibilities](docs/TECH_STACK.md)
+- [Hackathon video analysis and interpretation](docs/VIDEO_REVIEW.md)
+- [Supabase deployment proposal and required inputs](docs/BACKEND_REQUIREMENTS.md)
+
+The UI simulation does not create monitoring observations or send email. Backend migration and government email are later implementation stages.
+
+The [UI review record](docs/UI_REVIEW.md) lists route, control, mobile and provider checks performed for the presentation cleanup.

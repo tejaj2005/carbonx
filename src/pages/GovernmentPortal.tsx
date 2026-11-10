@@ -25,16 +25,15 @@ import {
 import { api, mutate, date, label, number, type Item } from '../api';
 import { useWorkspace } from '../context';
 import { Brand, Heading, Panel, Modal, Field, Badge, Empty, NotificationBell } from '../components';
+import { governmentSections } from '../navigation';
+import { SectionTabs } from '../components';
 import { MonitoringPage } from '../Monitoring';
 import { ReviewJourney, ReviewExperience } from '../VisualJourney';
 const nav = [
   ['government', 'Overview', LayoutDashboard],
-  ['gov-registry', 'Company registry', Building2],
-  ['gov-submissions', 'Claim submissions', FileCheck2],
-  ['gov-actions', 'Cases & actions', ClipboardList],
-  ['gov-users', 'User management', Users],
-  ['gov-audit', 'Activity log', Activity],
-  ['gov-monitoring', 'Monitoring & notifications', Activity],
+  ['gov-registry', 'Companies & access', Building2],
+  ['gov-submissions', 'Reviews & actions', FileCheck2],
+  ['gov-monitoring', 'Monitoring', Activity],
 ] as const;
 const BellIcon = Activity;
 type Action = { kind: string; item?: Item };
@@ -448,7 +447,9 @@ export function GovernmentPortal({ view }: { view: string }) {
     [walkthrough, setWalkthrough] = useState(false),
     [query, setQuery] = useState('');
   useEffect(() => setMenu(false), [view]);
-  const current = nav.find((n) => n[0] === view)?.[1] || 'Overview',
+  const section =
+    governmentSections.find((s) => s.pages.some((p) => p[0] === view)) || governmentSections[0];
+  const current = section.title,
     companies = g.companies.filter((c: Item) => c.name.toLowerCase().includes(query.toLowerCase()));
   async function switchDemo() {
     try {
@@ -480,9 +481,7 @@ export function GovernmentPortal({ view }: { view: string }) {
               href={'#' + id}
               onClick={() => setMenu(false)}
               key={id}
-              className={
-                view === id || (id === 'government' && !view.startsWith('gov')) ? 'active' : ''
-              }
+              className={section.id === id ? 'active' : ''}
             >
               <Icon size={18} />
               {name}
@@ -554,6 +553,7 @@ export function GovernmentPortal({ view }: { view: string }) {
               </button>
             </div>
           )}
+          <SectionTabs pages={section.pages} view={view} />
           {![
             'gov-registry',
             'gov-submissions',
