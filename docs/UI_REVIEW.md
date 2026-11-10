@@ -1,5 +1,7 @@
 # UI and presentation review
 
+Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
+
 Reviewed locally on 10 November 2026. This records observed checks and limits; it is not a claim that every possible interaction, credential flow or production deployment has been certified.
 
 ## Changes

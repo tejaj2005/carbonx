@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { SatelliteScene } from '../VisualJourney';
-import { VerificationStudio } from '../VerificationStudio';
 import {
   ResponsiveContainer,
   LineChart,
@@ -646,8 +645,8 @@ export function Environment() {
     <>
       <Heading
         eyebrow="ENVIRONMENTAL CONTEXT"
-        title="A wider view of the site."
-        description="Inspect regional atmospheric data and selected-site Sentinel-2 imagery alongside report evidence."
+        title="Site data"
+        description="View the selected site’s location, air quality and satellite comparison."
         action={
           user?.role !== 'reviewer' && (
             <button className="button primary" onClick={() => setAdd(true)}>
@@ -681,12 +680,6 @@ export function Environment() {
             Loading context sends this selected site’s coordinates and date window to the named
             public data providers.
           </p>
-          <VerificationStudio
-            facility={facility}
-            atmosphere={atmosphere}
-            satellite={satellite}
-            rules={data.monitoring.rules}
-          />
           <Panel
             title="Air quality & weather"
             kicker="OPEN-METEO"

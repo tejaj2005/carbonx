@@ -1013,3 +1013,46 @@ body {
     min-width: 0;
   }
 }
+
+/* Simplified default: essential data and controls. */
+.public-hero {
+  grid-template-columns: 1fr;
+  min-height: 0;
+  padding-top: 38px;
+  padding-bottom: 30px;
+}
+.hero-copy {
+  max-width: 760px;
+}
+.public-hero h1 {
+  font-size: 38px;
+  line-height: 1.2;
+}
+.hero-copy p {
+  font-size: 15px;
+  max-width: 650px;
+}
+.india-public-content {
+  padding-top: 32px;
+}
+.simple-details {
+  margin: 22px 0;
+  padding: 16px 20px;
+  border: 1px solid #dbe5d6;
+  border-radius: 10px;
+  background: #fff;
+}
+.simple-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.simple-details p {
+  font-size: 13px;
+  margin-top: 14px;
+  color: #526a5b;
+}
+@media (max-width: 550px) {
+  .public-hero h1 {
+    font-size: 30px;
+  }
+}

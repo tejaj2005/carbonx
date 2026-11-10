@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { VerificationStudio, SourceInventory, MetroComparison } from './VerificationStudio';
 import {
   Bell,
   CheckCheck,
@@ -496,8 +495,8 @@ export function MonitoringPage() {
     <>
       <Heading
         eyebrow="INDIA · MONITORING & NOTIFICATIONS"
-        title="Observe the data. Follow up with evidence."
-        description="Eight metropolitan cities, source-aware monitoring and accountable alerts for companies and Government Oversight."
+        title="Emissions & alerts"
+        description="Check reported emissions, limits and notifications."
         action={
           (government || user?.role !== 'reviewer') && (
             <button
@@ -513,19 +512,11 @@ export function MonitoringPage() {
       <div className="monitoring-disclaimer">
         <ShieldAlert size={21} />
         <p>
-          <b>Two different questions.</b> City air quality describes regional conditions. A company
-          threshold needs its own facility observation, unit, reporting period and applicable
-          reference. Alerts never suspend a licence automatically.
+          City air quality is regional context. Company alerts use facility readings and configured
+          limits. Licence decisions require government review.
         </p>
       </div>
       <EmissionOverview rules={m.rules} facilities={m.facilities} />
-      <details className="studio-disclosure">
-        <summary>
-          Open the visual verification studio{' '}
-          <span>Location → air quality → satellite → emissions → review</span>
-        </summary>
-        <VerificationStudio cities={m.cities} rules={m.rules} />
-      </details>
       <Panel title="Your notifications" kicker="DELIVERED IN CARBONX">
         {m.notifications.length ? (
           <div className="notification-list">
@@ -788,8 +779,8 @@ export function PublicIndia() {
       <main className="india-public-content">
         <Heading
           eyebrow="INDIA · METROPOLITAN OBSERVATORY"
-          title="Real provider data. Clear source boundaries."
-          description="Delhi, Mumbai, Bengaluru, Hyderabad, Chennai, Kolkata, Pune and Ahmedabad. Current regional model outputs are labelled separately from measured station records."
+          title="India air quality"
+          description="Latest available air-quality data for eight major Indian cities."
           action={
             <button className="button secondary" disabled={busy} onClick={() => void load()}>
               <RefreshCw size={16} className={busy ? 'spin' : ''} />
@@ -814,20 +805,17 @@ export function PublicIndia() {
         <div className="monitoring-disclaimer">
           <ShieldAlert size={21} />
           <p>
-            Open-Meteo/CAMS values are model estimates, not live sensors. The India model has
-            approximately 45 km resolution and 3-hour native time steps, updated every 12 hours.
-            City pollution does not establish a company’s emissions violation.
+            These are regional model estimates, not factory measurements. Select a city for its data
+            and source details.
           </p>
         </div>
         {error && <p className="callout warning">{error}</p>}
-        {data && <VerificationStudio cities={data.cities} />}
-        {data && <MetroComparison cities={data.cities} />}
         <CityCards cities={data?.cities || []} select={setCity} />
-        <SourceInventory />
         {!data && (
           <Empty title="Loading metropolitan sources">No sample readings are substituted.</Empty>
         )}
-        <Panel title="Measured station data and company emissions">
+        <details className="simple-details">
+          <summary>About the data</summary>
           <p>
             Official CPCB station summaries need a free data.gov.in API key. Their units and
             averaging periods must be confirmed before compliance comparison. Continuous factory
@@ -837,7 +825,7 @@ export function PublicIndia() {
             This page uses public city coordinates. Company reports, account details and private
             monitoring observations are not published here.
           </p>
-        </Panel>
+        </details>
         <footer className="india-attribution">
           <p>{data?.sources?.attribution}</p>
           <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noreferrer">
@@ -872,7 +860,7 @@ function EmissionOverview({ rules, facilities }: { rules: Item[]; facilities: It
       <div className="row-between">
         <div>
           <span className="eyebrow">FACILITY EMISSIONS · COMPANY-REPORTED EVIDENCE</span>
-          <h2>Readings against the configured thresholds.</h2>
+          <h2>Emissions summary</h2>
         </div>
         <span className="source-chip light">No automatic licence action</span>
       </div>

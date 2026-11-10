@@ -159,7 +159,6 @@ export function PublicPortal() {
     [query, setQuery] = useState(''),
     [examples, setExamples] = useState(true),
     [selected, setSelected] = useState<string | null>(null),
-    [walkthrough, setWalkthrough] = useState(false),
     [busy, setBusy] = useState(false);
   async function refresh() {
     setBusy(true);
@@ -193,7 +192,6 @@ export function PublicPortal() {
           <a href="#public" className="selected">
             Public transparency
           </a>
-          <button onClick={() => setWalkthrough(true)}>How it works</button>
         </nav>
         <div>
           <a
@@ -220,15 +218,8 @@ export function PublicPortal() {
               <span className="status-dot" />
               CARBONX PUBLIC OBSERVATORY
             </span>
-            <h1>
-              A clearer view of
-              <br />
-              <em>our shared future.</em>
-            </h1>
-            <p>
-              Explore reported resource use, environmental observations and the status of company
-              sustainability submissions. Evidence made visible, for everyone.
-            </p>
+            <h1>Company records</h1>
+            <p>View published company reports, resource use and review status.</p>
             <div className="button-row">
               <a
                 className="button primary"
@@ -243,42 +234,6 @@ export function PublicPortal() {
                 Explore published companies
                 <ArrowRight size={17} />
               </a>
-              <button className="button text-button" onClick={() => setWalkthrough(true)}>
-                <Play size={16} />
-                Watch the review journey
-              </button>
-            </div>
-            <div className="hero-trust">
-              <span>
-                <Eye size={16} />
-                Open access
-              </span>
-              <span>
-                <ShieldCheck size={16} />
-                Source-aware records
-              </span>
-              <span>
-                <Radio size={16} />
-                30-second refresh
-              </span>
-            </div>
-          </div>
-          <div className="hero-observation">
-            <SatelliteScene />
-            <div className="floating-observation fo-one">
-              <Satellite size={18} />
-              <span>
-                Satellite perspective<small>Observe change over time</small>
-              </span>
-            </div>
-            <div className="floating-observation fo-two">
-              <Wind size={18} />
-              <span>
-                Air-quality context<small>Provider times stay visible</small>
-              </span>
-            </div>
-            <div className="hero-illustration-note">
-              Illustration · actual observations appear in published company records
             </div>
           </div>
         </section>
@@ -418,59 +373,6 @@ export function PublicPortal() {
             </p>
           </div>
         </section>
-        <section className="public-process">
-          <div className="public-section-heading">
-            <div>
-              <span className="eyebrow">A PROCESS PEOPLE CAN FOLLOW</span>
-              <h2>From a report to a reasoned decision.</h2>
-            </div>
-          </div>
-          <ReviewExperience />
-        </section>
-        <section className="public-roles">
-          <div>
-            <Building2 size={28} />
-            <h3>For companies</h3>
-            <p>
-              Submit claims, upload reports and keep the evidence behind your resource-use records
-              in one place.
-            </p>
-            <a href="#company-login">
-              Enter company portal
-              <ArrowRight size={16} />
-            </a>
-          </div>
-          <div>
-            <Landmark size={28} />
-            <h3>For Government Oversight</h3>
-            <p>
-              Review company submissions, manage licence records and record accountable
-              administrative actions.
-            </p>
-            <a href="#government-login">
-              Enter government portal
-              <ArrowRight size={16} />
-            </a>
-          </div>
-          <div>
-            <Globe2 size={28} />
-            <h3>For everyone</h3>
-            <p>
-              See published records without an account, with clear labels for examples and
-              environmental context.
-            </p>
-            <a
-              href="#public-registry"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('public-registry')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              Explore the register
-              <ArrowRight size={16} />
-            </a>
-          </div>
-        </section>
       </main>
       <footer className="public-footer">
         <Brand />
@@ -481,11 +383,6 @@ export function PublicPortal() {
         </span>
       </footer>
       {current && <PublicCompany company={current} onClose={() => setSelected(null)} />}
-      {walkthrough && (
-        <Modal title="The CarbonX review journey" wide onClose={() => setWalkthrough(false)}>
-          <ReviewExperience />
-        </Modal>
-      )}
     </div>
   );
 }
@@ -555,7 +452,6 @@ export function PortalLogin({ portal }: { portal: 'company' | 'government' }) {
             ? 'Review the evidence, follow up on concerns and record decisions that people can understand.'
             : 'Submit sustainability claims, organise your reports and share a clear picture of your resource use.'}
         </p>
-        <ReviewJourney compact />
         <a href="#public" className="auth-back">
           <ArrowLeftIcon />
           Back to public transparency

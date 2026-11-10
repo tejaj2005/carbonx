@@ -25,7 +25,6 @@ const MonitoringPage = lazy(() =>
 );
 const PublicIndia = lazy(() => import('./Monitoring').then((m) => ({ default: m.PublicIndia })));
 import { PublicPortal, PortalLogin } from './Portals';
-import { ReviewJourney, ReviewExperience } from './VisualJourney';
 const GovernmentPortal = lazy(() =>
   import('./pages/GovernmentPortal').then((m) => ({ default: m.GovernmentPortal })),
 );
@@ -55,17 +54,16 @@ import { companySections } from './navigation';
 import { SectionTabs } from './components';
 const navigation = [
   ['overview', 'Overview', LayoutDashboard],
-  ['reports', 'Reports & evidence', FileText],
+  ['reports', 'Reports', FileText],
   ['monitoring', 'Monitoring', Activity],
-  ['submissions', 'Submissions & actions', ShieldCheck],
-  ['history', 'Records & evaluation', Database],
+  ['submissions', 'Submissions', ShieldCheck],
+  ['history', 'History', Database],
   ['settings', 'Settings', Settings],
 ] as const;
 function Shell() {
   const { user, ready, loading, data, refresh, logout, claimId, signIn, toast } = useWorkspace();
   const [view, setView] = useState(location.hash.slice(1) || 'public'),
-    [menu, setMenu] = useState(false),
-    [walkthrough, setWalkthrough] = useState(false);
+    [menu, setMenu] = useState(false);
   useEffect(() => {
     const change = () => {
       setView(location.hash.slice(1) || 'public');
@@ -198,13 +196,6 @@ function Shell() {
           </span>
           <div className="topbar-actions">
             <NotificationBell />
-            <button
-              className="button secondary walkthrough-button"
-              onClick={() => setWalkthrough(true)}
-            >
-              Review walkthrough
-              <ArrowRight size={14} />
-            </button>
             <span className="local-badge">
               <span />
               Workspace online
@@ -258,11 +249,6 @@ function Shell() {
           <span>Trace the evidence. Record the judgment.</span>
         </footer>
       </main>
-      {walkthrough && (
-        <Modal title="The CarbonX review journey" wide onClose={() => setWalkthrough(false)}>
-          <ReviewExperience />
-        </Modal>
-      )}
       {claimId && (
         <Suspense fallback={<Spinner />}>
           <ClaimDetail key={claimId} />

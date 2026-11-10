@@ -28,11 +28,10 @@ import { Brand, Heading, Panel, Modal, Field, Badge, Empty, NotificationBell } f
 import { governmentSections } from '../navigation';
 import { SectionTabs } from '../components';
 import { MonitoringPage } from '../Monitoring';
-import { ReviewJourney, ReviewExperience } from '../VisualJourney';
 const nav = [
   ['government', 'Overview', LayoutDashboard],
-  ['gov-registry', 'Companies & access', Building2],
-  ['gov-submissions', 'Reviews & actions', FileCheck2],
+  ['gov-registry', 'Companies', Building2],
+  ['gov-submissions', 'Reviews', FileCheck2],
   ['gov-monitoring', 'Monitoring', Activity],
 ] as const;
 const BellIcon = Activity;
@@ -444,7 +443,6 @@ export function GovernmentPortal({ view }: { view: string }) {
   const [menu, setMenu] = useState(false),
     [action, setAction] = useState<Action | null>(null),
     [detail, setDetail] = useState<Item | null>(null),
-    [walkthrough, setWalkthrough] = useState(false),
     [query, setQuery] = useState('');
   useEffect(() => setMenu(false), [view]);
   const section =
@@ -523,13 +521,6 @@ export function GovernmentPortal({ view }: { view: string }) {
           <div className="topbar-actions">
             <NotificationBell />
             <button
-              className="button secondary walkthrough-button"
-              onClick={() => setWalkthrough(true)}
-            >
-              <Play size={14} />
-              Review walkthrough
-            </button>
-            <button
               className="icon-button"
               aria-label="Refresh oversight records"
               disabled={loading}
@@ -591,7 +582,6 @@ export function GovernmentPortal({ view }: { view: string }) {
                   </article>
                 ))}
               </div>
-              <ReviewJourney compact />
               <div className="gov-overview-bottom">
                 <Panel
                   title="Companies requiring attention"
@@ -928,11 +918,6 @@ export function GovernmentPortal({ view }: { view: string }) {
       {action && <AdminForm action={action} close={() => setAction(null)} />}
       {detail && (
         <CompanyDetail company={detail} onClose={() => setDetail(null)} onAction={openAction} />
-      )}
-      {walkthrough && (
-        <Modal title="The CarbonX review journey" wide onClose={() => setWalkthrough(false)}>
-          <ReviewExperience />
-        </Modal>
       )}
     </div>
   );

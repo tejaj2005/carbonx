@@ -148,7 +148,7 @@ The three HTTP integrations were ISS orbital position, Open-Meteo air quality an
 
 ## Presentation, data and backend reference
 
-Related views are grouped into six company sections and four government sections. The India observatory includes a coordinate-to-review visual verification studio, replay of stored provider results, a separate synthetic emissions simulator, a pollutant comparison and a source catalogue. Existing view links remain usable.
+The simplified interface groups related views into six company sections and four government sections. Main views show city readings, emissions summaries, reports, alerts and site data. Presentation walkthroughs and simulations are not displayed. Existing view links remain usable.
 
 - [API features, data origins and demo inventory](docs/API_AND_DATA_SOURCES.md)
 - [Technology stack and runtime responsibilities](docs/TECH_STACK.md)

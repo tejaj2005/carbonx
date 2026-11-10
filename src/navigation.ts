@@ -2,7 +2,7 @@ export const companySections = [
   { id: 'overview', title: 'Overview', pages: [['overview', 'Overview']] },
   {
     id: 'reports',
-    title: 'Reports & evidence',
+    title: 'Reports',
     pages: [
       ['reports', 'Report library'],
       ['claims', 'Claims & SDGs'],
@@ -19,7 +19,7 @@ export const companySections = [
   },
   {
     id: 'submissions',
-    title: 'Submissions & actions',
+    title: 'Submissions',
     pages: [
       ['submissions', 'Government submissions'],
       ['recommendations', 'Action plans'],
@@ -27,7 +27,7 @@ export const companySections = [
   },
   {
     id: 'history',
-    title: 'Records & evaluation',
+    title: 'History',
     pages: [
       ['history', 'Historical data'],
       ['evaluations', 'Quality evaluation'],
@@ -47,7 +47,7 @@ export const governmentSections = [
   },
   {
     id: 'gov-registry',
-    title: 'Companies & access',
+    title: 'Companies',
     pages: [
       ['gov-registry', 'Company registry'],
       ['gov-users', 'User management'],
@@ -55,7 +55,7 @@ export const governmentSections = [
   },
   {
     id: 'gov-submissions',
-    title: 'Reviews & actions',
+    title: 'Reviews',
     pages: [
       ['gov-submissions', 'Claim reviews'],
       ['gov-actions', 'Cases & actions'],

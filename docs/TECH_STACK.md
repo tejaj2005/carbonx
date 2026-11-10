@@ -1,5 +1,7 @@
 # CarbonX technology stack
 
+Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
+
 Current implementation, 10 November 2026. Version pins are in package.json/package-lock.json. This is a full-stack website served over HTTP, not a folder of standalone HTML screens.
 
 | Layer              | Technology                                                     | Purpose                                                                                                       |

@@ -1,5 +1,7 @@
 # CarbonX API and data-source catalogue
 
+Update, 10 November 2026: the default website has been simplified at the user's request. Walkthroughs, the verification studio, simulations and duplicate comparison/source panels are no longer displayed in the main views. Core data, uploads, reviews, thresholds, alerts and administrative actions are preserved. Source/prototype descriptions below document the earlier implementation; reusable presentation components remain in the code only.
+
 Scope: the actual implementation in this checkout, reviewed 10 November 2026. This file describes what is implemented, what has been exercised live, what is company supplied and what is synthetic. Credentials are never included.
 
 The public website also exposes a readable source catalogue. Its copy lives in src/data/integrations.ts. Runtime availability is shown by the connection panels, timestamps and provider results; a catalogue description is not proof that a service is connected.
